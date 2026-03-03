@@ -1,0 +1,12 @@
+<Project>
+  <!-- Inherit root Directory.Build.props -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- xUnit test methods use MethodName_Condition_ExpectedResult naming convention.
+         Suppress CA1707 (underscores in identifiers) for test projects only. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!-- Disable TreatWarningsAsErrors for test projects to reduce friction. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
