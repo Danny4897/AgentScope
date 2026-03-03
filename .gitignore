@@ -1,0 +1,42 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.swp
+*.sln.DotSettings.user
+
+## NuGet
+*.nupkg
+nupkg/
+.nuget/
+
+## Build output
+out/
+publish/
+
+## Secrets & config overrides
+appsettings.*.json
+!appsettings.Development.json
+.env
+.env.*
+secrets/
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Migrations snapshot (keep migrations, ignore snap)
+# Uncomment if you don't want model snapshots tracked:
+# *ModelSnapshot.cs
+
+## Rider / JetBrains
+.idea/
+*.DotSettings
+
+## Logs
+*.log
+logs/
