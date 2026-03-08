@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <Deterministic>true</Deterministic>
+    <Deterministic>false</Deterministic>
     <Authors>Danny4897</Authors>
     <Company>AgentScope</Company>
     <Copyright>Copyright © Danny4897 2026</Copyright>
