@@ -43,6 +43,12 @@ public sealed class Trace
         Status  = finalStatus;
         EndedAt = endedAt;
     }
+
+    /// <summary>
+    /// Attaches spans to this trace before persistence.
+    /// Called by ingestion agents to populate the EF navigation property.
+    /// </summary>
+    public void AttachSpans(IEnumerable<Span> spans) => _spans.AddRange(spans);
 }
 
 public enum TraceStatus

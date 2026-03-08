@@ -1,0 +1,134 @@
+@page "/metrics"
+@attribute [Authorize]
+@inject DashboardService Svc
+@inject CurrentUserService CurrentUser
+
+<PageTitle>Metrics — AgentScope</PageTitle>
+
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px;">
+    <div>
+        <MudText Typo="Typo.h5" Style="font-weight:700; color:#F9FAFB; letter-spacing:-.3px;">Metrics</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280; margin-top:2px;">Last 6 hours — aggregated time windows</MudText>
+    </div>
+</div>
+
+<!-- Filters -->
+<MudPaper Class="pa-4 mb-4" Elevation="0"
+          Style="border:1px solid #1F2937; border-radius:12px;">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid?" Label="Application" @bind-Value="_appFilter"
+                       Clearable="true" Dense="true" Variant="Variant.Outlined"
+                       AnchorOrigin="Origin.BottomLeft">
+                @foreach (var app in _apps)
+                {
+                    <MudSelectItem T="Guid?" Value="@app.Id">@app.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string" Label="Time Window" @bind-Value="_timeWindow"
+                       Dense="true" Variant="Variant.Outlined"
+                       AnchorOrigin="Origin.BottomLeft">
+                <MudSelectItem T="string" Value="@("raw")">Raw</MudSelectItem>
+                <MudSelectItem T="string" Value="@("1min")">1 min</MudSelectItem>
+                <MudSelectItem T="string" Value="@("5min")">5 min</MudSelectItem>
+                <MudSelectItem T="string" Value="@("1h")">1 hour</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" OnClick="LoadMetrics"
+                       Style="height:40px; font-weight:600;">Apply</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<!-- Table -->
+<MudPaper Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden;">
+    <MudTable Items="_metrics" Hover="true" Dense="true" Elevation="0"
+              Style="background:transparent !important;" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Metric</MudTh>
+            <MudTh>Kind</MudTh>
+            <MudTh>Unit</MudTh>
+            <MudTh>Min</MudTh>
+            <MudTh>Max</MudTh>
+            <MudTh>Avg</MudTh>
+            <MudTh>Count</MudTh>
+            <MudTh>Window Start</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <span style="font-weight:600; color:#E5E7EB; font-size:.85rem;">@context.MetricName</span>
+            </MudTd>
+            <MudTd>
+                @{
+                    var kindCls = context.Kind switch
+                    {
+                        MetricKind.Gauge     => "badge badge-gauge",
+                        MetricKind.Sum       => "badge badge-sum",
+                        MetricKind.Histogram => "badge badge-histogram",
+                        _                    => "badge badge-unknown",
+                    };
+                }
+                <span class="@kindCls">@context.Kind</span>
+            </MudTd>
+            <MudTd>
+                <span style="font-size:.78rem; color:#6B7280;">@context.Unit</span>
+            </MudTd>
+            <MudTd>
+                <span style="font-size:.82rem; color:#9CA3AF; font-family:'JetBrains Mono',monospace;">
+                    @context.Min.ToString("F2")
+                </span>
+            </MudTd>
+            <MudTd>
+                <span style="font-size:.82rem; color:#9CA3AF; font-family:'JetBrains Mono',monospace;">
+                    @context.Max.ToString("F2")
+                </span>
+            </MudTd>
+            <MudTd>
+                <span style="font-size:.85rem; font-weight:700; color:#3B82F6; font-family:'JetBrains Mono',monospace;">
+                    @context.Avg.ToString("F2")
+                </span>
+            </MudTd>
+            <MudTd>
+                <span style="font-size:.82rem; color:#9CA3AF;">@context.Count</span>
+            </MudTd>
+            <MudTd>
+                <span style="font-size:.78rem; color:#6B7280; font-family:'JetBrains Mono',monospace;">
+                    @context.WindowStart.ToString("HH:mm:ss")
+                </span>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <div style="padding:48px; text-align:center;">
+                <MudIcon Icon="@Icons.Material.Outlined.QueryStats" Style="color:#374151; font-size:40px; margin-bottom:12px; display:block;" />
+                <MudText Typo="Typo.body2" Style="color:#6B7280;">No metrics yet — add SDK metrics instrumentation to your app.</MudText>
+            </div>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<Application> _apps      = [];
+    private List<MetricPoint> _metrics   = [];
+    private Guid?             _appFilter;
+    private string            _timeWindow = "1min";
+    private bool              _loading;
+    private Guid?             _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userId = await CurrentUser.GetUserIdAsync();
+        _apps   = await Svc.GetApplicationsAsync(_userId);
+        await LoadMetrics();
+    }
+
+    private async Task LoadMetrics()
+    {
+        _loading = true;
+        _metrics = await Svc.GetMetricsAsync(_userId, _appFilter, _timeWindow);
+        _loading = false;
+    }
+}

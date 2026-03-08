@@ -1,0 +1,30 @@
+# Railway deployment config — API service
+# For Web service: change dockerBuildTarget to "web"
+[build]
+builder          = "dockerfile"
+dockerfilePath   = "Dockerfile"
+dockerBuildTarget = "api"
+
+[deploy]
+healthcheckPath    = "/health"
+healthcheckTimeout = 300
+restartPolicyType  = "on_failure"
+
+# Environment variables to configure in Railway dashboard:
+# ──────────────────────────────────────────────────────────
+# Required (API):
+#   ASPNETCORE_ENVIRONMENT        = Production
+#   Jwt__Key                      = <random 64-char secret>
+#   ConnectionStrings__Postgres   = Host=<host>;Database=agentscope;Username=<user>;Password=<pass>
+#                                   OR use DATABASE_URL (auto-set by Railway Postgres plugin)
+#   ConnectionStrings__Redis      = <host>:<port>
+#                                   OR use REDIS_URL (auto-set by Railway Redis plugin)
+#   WebBaseUrl                    = https://<your-web-service>.railway.app
+#   GitHub__ClientId              = <GitHub OAuth App client id>
+#   GitHub__ClientSecret          = <GitHub OAuth App secret>
+#   GitHub__RedirectUri           = https://<your-api-service>.railway.app/api/v1/auth/github/callback
+#
+# Required (Web):
+#   ASPNETCORE_ENVIRONMENT        = Production
+#   ApiBaseUrl                    = https://<your-api-service>.railway.app
+#   ConnectionStrings__Postgres   = (same as API)

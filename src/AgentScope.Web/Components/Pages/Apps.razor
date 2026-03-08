@@ -1,0 +1,228 @@
+@page "/apps"
+@attribute [Authorize]
+@inject IHttpClientFactory HttpClientFactory
+@inject CurrentUserService CurrentUser
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Style="font-weight:700; color:#F9FAFB; margin-bottom:4px;">Applications</MudText>
+<MudText Typo="Typo.body2" Style="color:#6B7280; margin-bottom:24px;">
+    Manage your monitored applications and API keys.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog"
+                   Style="font-weight:600;">
+            New Application
+        </MudButton>
+    </div>
+
+    @if (_apps.Count == 0)
+    {
+        <MudPaper Elevation="0" Style="background:#111827; border:1px solid #1F2937; border-radius:12px; padding:48px; text-align:center;">
+            <MudIcon Icon="@Icons.Material.Outlined.Apps" Style="font-size:48px; color:#374151; margin-bottom:12px;" />
+            <MudText Style="color:#6B7280; font-size:15px;">No applications yet. Create your first one to get started.</MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="0" Style="background:#111827; border:1px solid #1F2937; border-radius:12px; overflow:hidden;">
+            <MudTable Items="_apps" Hover="true" Dense="true" Style="background:transparent;">
+                <HeaderContent>
+                    <MudTh Style="color:#9CA3AF; font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600;">Name</MudTh>
+                    <MudTh Style="color:#9CA3AF; font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600;">Status</MudTh>
+                    <MudTh Style="color:#9CA3AF; font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600;">Created</MudTh>
+                    <MudTh Style="color:#9CA3AF; font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600;">Description</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Style="color:#F9FAFB; font-weight:500;">@context.Name</MudText>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.IsActive)
+                        {
+                            <span class="badge-success">active</span>
+                        }
+                        else
+                        {
+                            <span class="badge-failure">inactive</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudText Style="color:#9CA3AF; font-size:12px;">@context.CreatedAt.ToString("MMM dd, yyyy")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Style="color:#6B7280; font-size:13px;">@(context.Description ?? "—")</MudText>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+}
+
+@* Create App Dialog *@
+<MudDialog @bind-Visible="_showCreateDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight:700;">New Application</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_newAppName"
+                      Label="Application Name"
+                      Variant="Variant.Outlined"
+                      FullWidth="true"
+                      Class="mb-4" />
+        <MudTextField @bind-Value="_newAppDescription"
+                      Label="Description (optional)"
+                      Variant="Variant.Outlined"
+                      FullWidth="true"
+                      Lines="2" />
+        @if (_createError != null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" Dense="true">@_createError</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _showCreateDialog = false" Style="color:#6B7280;">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateApp" Disabled="_creating">
+            @(_creating ? "Creating..." : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* API Key display dialog *@
+<MudDialog @bind-Visible="_showApiKeyDialog" Options="_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-weight:700;">Application Created</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-4">
+            Copy this API key now — it won't be shown again.
+        </MudAlert>
+        <div style="background:#0A0E1A; border:1px solid #374151; border-radius:8px; padding:12px; display:flex; align-items:center; gap:8px;">
+            <code style="color:#60A5FA; font-family:'JetBrains Mono',monospace; font-size:13px; flex:1; word-break:break-all;">@_newApiKey</code>
+            <MudIconButton Icon="@Icons.Material.Outlined.ContentCopy"
+                           Size="Size.Small"
+                           Style="color:#9CA3AF;"
+                           OnClick="CopyApiKey" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => _showApiKeyDialog = false">Done</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<AppDto> _apps = [];
+    private bool _loading = true;
+    private bool _showCreateDialog;
+    private bool _showApiKeyDialog;
+    private string _newAppName = "";
+    private string _newAppDescription = "";
+    private string? _newApiKey;
+    private string? _createError;
+    private bool _creating;
+
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    protected override async Task OnInitializedAsync() => await LoadApps();
+
+    private async Task LoadApps()
+    {
+        _loading = true;
+        try
+        {
+            var token = await CurrentUser.GetTokenAsync();
+            var client = HttpClientFactory.CreateClient("AgentScopeApi");
+            if (token != null)
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var result = await client.GetFromJsonAsync<List<AppDto>>("/api/v1/apps");
+            _apps = result ?? [];
+        }
+        catch
+        {
+            _apps = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _newAppName = "";
+        _newAppDescription = "";
+        _createError = null;
+        _showCreateDialog = true;
+    }
+
+    private async Task CreateApp()
+    {
+        _createError = null;
+        if (string.IsNullOrWhiteSpace(_newAppName))
+        {
+            _createError = "Application name is required.";
+            return;
+        }
+
+        _creating = true;
+        try
+        {
+            var token = await CurrentUser.GetTokenAsync();
+            var client = HttpClientFactory.CreateClient("AgentScopeApi");
+            if (token != null)
+                client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.PostAsJsonAsync("/api/v1/apps", new { Name = _newAppName, Description = _newAppDescription });
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<AppCreatedDto>();
+                _newApiKey = created?.ApiKey;
+                _showCreateDialog = false;
+                _showApiKeyDialog = true;
+                await LoadApps();
+            }
+            else
+            {
+                var err = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                _createError = err?.Error ?? "Failed to create application.";
+            }
+        }
+        catch
+        {
+            _createError = "Unable to connect to the server.";
+        }
+        finally
+        {
+            _creating = false;
+        }
+    }
+
+    private async Task CopyApiKey()
+    {
+        if (_newApiKey != null)
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _newApiKey);
+            Snackbar.Add("API key copied!", Severity.Success);
+        }
+    }
+
+    private record AppDto(Guid Id, string Name, bool IsActive, DateTimeOffset CreatedAt, string? Description);
+    private record AppCreatedDto(Guid Id, string Name, string ApiKey, bool IsActive, DateTimeOffset CreatedAt, string? Description);
+    private record ErrorResponse(string? Error);
+}

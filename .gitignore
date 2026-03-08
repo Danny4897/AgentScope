@@ -19,7 +19,6 @@ publish/
 
 ## Secrets & config overrides
 appsettings.*.json
-!appsettings.Development.json
 .env
 .env.*
 secrets/
@@ -40,3 +39,20 @@ desktop.ini
 ## Logs
 *.log
 logs/
+
+## Node / Playwright (dev tools, non fanno parte della soluzione)
+node_modules/
+package-lock.json
+package.json
+pw-test.mjs
+
+## Claude Code IDE (settings locali, non soluzione)
+.claude/
+
+## File di orchestrazione multi-agente (ai dev tools)
+tech-implementer.agent.md
+tech-planner.agent.md
+tech-tester.agent.md
+
+## Note di sviluppo (non necessarie per avviare la soluzione)
+IMPLEMENTATION_RECORDS.md

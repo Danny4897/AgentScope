@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>AgentScope.Domain</RootNamespace>
+    <NoWarn>$(NoWarn);CS8034</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,236 @@
+@page "/traces/{Id:guid}"
+@inject DashboardService Svc
+@inject NavigationManager Nav
+
+<PageTitle>Trace Detail — AgentScope</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-4 pa-0" />
+
+@if (_trace is null && _loaded)
+{
+    <MudAlert Severity="Severity.Warning">Trace not found.</MudAlert>
+}
+else if (_trace is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <!-- Header -->
+    <MudPaper Class="pa-5 mb-4" Elevation="0"
+              Style="border:1px solid #1F2937; border-radius:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+            <div>
+                <MudText Typo="Typo.h6" Style="font-weight:700; color:#F9FAFB; margin-bottom:4px;">
+                    @_trace.RootSpanName
+                </MudText>
+                <code style="font-family:'JetBrains Mono',monospace; font-size:.78rem; color:#6B7280;">
+                    @_trace.TraceId
+                </code>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                @{
+                    var (tCls, tLbl) = _trace.Status switch
+                    {
+                        TraceStatus.Success => ("badge badge-success", "Success"),
+                        TraceStatus.Failure => ("badge badge-failure", "Failure"),
+                        TraceStatus.Running => ("badge badge-running", "Running"),
+                        TraceStatus.Timeout => ("badge badge-timeout", "Timeout"),
+                        _                   => ("badge badge-unknown", _trace.Status.ToString()),
+                    };
+                }
+                <span class="@tCls" style="font-size:.8rem; padding:4px 14px;">@tLbl</span>
+                <MudText Typo="Typo.caption" Style="color:#6B7280;">
+                    @_trace.StartedAt.ToString("dd MMM yyyy HH:mm:ss.fff")
+                </MudText>
+            </div>
+        </div>
+
+        <MudDivider Class="my-4" Style="border-color:#1F2937;" />
+
+        <div style="display:flex; gap:40px; flex-wrap:wrap;">
+            <div>
+                <div class="kpi-label">Duration</div>
+                <div style="font-size:1.25rem; font-weight:700; color:#F9FAFB;">@_trace.DurationMs <span style="font-size:.85rem; color:#6B7280;">ms</span></div>
+            </div>
+            <div>
+                <div class="kpi-label">Spans</div>
+                <div style="font-size:1.25rem; font-weight:700; color:#F9FAFB;">@_spans.Count</div>
+            </div>
+            <div>
+                <div class="kpi-label">Errors</div>
+                <div style="font-size:1.25rem; font-weight:700; color:@(_spans.Any(s => s.Status == SpanStatus.Error) ? "#EF4444" : "#F9FAFB");">
+                    @_spans.Count(s => s.Status == SpanStatus.Error)
+                </div>
+            </div>
+        </div>
+    </MudPaper>
+
+    <!-- Waterfall -->
+    <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight:600; color:#F9FAFB;">Span Waterfall</MudText>
+    <MudPaper Elevation="0" Class="mb-6" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden;">
+        <div style="padding:16px 20px; overflow-x:auto;">
+            @foreach (var span in _spans.OrderBy(s => s.StartedAt))
+            {
+                var offsetPct = _trace.DurationMs > 0
+                    ? (span.StartedAt - _trace.StartedAt).TotalMilliseconds / _trace.DurationMs * 100
+                    : 0;
+                var widthPct  = _trace.DurationMs > 0
+                    ? Math.Max(span.DurationMs / (double)_trace.DurationMs * 100, 0.5)
+                    : 1;
+                var barColor  = span.Status == SpanStatus.Error ? "#EF4444"
+                    : span.ParentSpanId == null ? "#3B82F6" : "#60A5FA";
+                var indent    = span.ParentSpanId != null ? "20px" : "0";
+
+                <div style="display:flex; align-items:center; margin-bottom:8px; gap:12px;">
+                    <div style="min-width:200px; padding-left:@indent; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <span style="font-size:.78rem; color:#D1D5DB;">@span.Name</span>
+                    </div>
+                    <div class="waterfall-track">
+                        <div style="position:absolute; left:@(offsetPct.ToString("F1"))%; width:@(widthPct.ToString("F1"))%;
+                                    height:100%; background:@barColor; border-radius:4px; min-width:3px; opacity:.85;">
+                        </div>
+                    </div>
+                    <div style="min-width:64px; text-align:right;">
+                        <span style="font-size:.75rem; font-family:'JetBrains Mono',monospace; color:#6B7280;">@span.DurationMs ms</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </MudPaper>
+
+    <!-- Railway Flow -->
+    @if (_railwayRoots.Count > 0 && _railwayRoots.Any(HasRailwayOp))
+    {
+        <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight:600; color:#F9FAFB;">Railway Flow</MudText>
+        <MudPaper Elevation="0" Class="mb-6 pa-4"
+                  Style="border:1px solid #1F2937; border-radius:12px; background:#0A0E1A;">
+            <div style="font-size:.72rem; color:#6B7280; margin-bottom:12px; letter-spacing:.05em; text-transform:uppercase;">
+                Bind / Map / Then chain — green = Success · red = Failure
+            </div>
+            @foreach (var root in _railwayRoots)
+            {
+                @RenderRailwayNode(root, 0)
+            }
+        </MudPaper>
+    }
+
+    <!-- Span table -->
+    <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight:600; color:#F9FAFB;">Span Details</MudText>
+    <MudPaper Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden;">
+        <MudTable Items="_spans.OrderBy(s => s.StartedAt)" Dense="true" Elevation="0"
+                  Style="background:transparent !important;">
+            <HeaderContent>
+                <MudTh>Span ID</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Kind</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Duration</MudTh>
+                <MudTh>Attributes</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <code style="font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#6B7280;">
+                        @context.SpanId
+                    </code>
+                </MudTd>
+                <MudTd><MudText Typo="Typo.body2" Style="color:#E5E7EB;">@context.Name</MudText></MudTd>
+                <MudTd><MudText Typo="Typo.body2" Style="color:#6B7280; font-size:.75rem;">@context.Kind</MudText></MudTd>
+                <MudTd>
+                    @{
+                        var (sCls, sLbl) = context.Status switch
+                        {
+                            SpanStatus.Ok    => ("badge badge-ok",    "Ok"),
+                            SpanStatus.Error => ("badge badge-error", "Error"),
+                            _                => ("badge badge-unset", "Unset"),
+                        };
+                    }
+                    <span class="@sCls">@sLbl</span>
+                </MudTd>
+                <MudTd>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#9CA3AF;">
+                        @context.DurationMs ms
+                    </span>
+                </MudTd>
+                <MudTd>
+                    @if (context.AttributesJson != "{}")
+                    {
+                        <span style="font-family:'JetBrains Mono',monospace; font-size:.7rem; color:#6B7280;">
+                            @context.AttributesJson[..Math.Min(60, context.AttributesJson.Length)]
+                        </span>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private Trace?            _trace;
+    private List<Span>        _spans        = [];
+    private List<RailwayNode> _railwayRoots = [];
+    private bool              _loaded;
+
+    private List<BreadcrumbItem> _breadcrumbs =
+    [
+        new("Dashboard", href: "/"),
+        new("Traces",    href: "/traces"),
+        new("Detail",    href: null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _trace        = await Svc.GetTraceDetailAsync(Id);
+        _spans        = _trace?.Spans.ToList() ?? [];
+        _railwayRoots = await Svc.GetRailwayGraphAsync(Id);
+        _loaded       = true;
+    }
+
+    private static bool HasRailwayOp(RailwayNode n) =>
+        n.Operation is not null || n.Children.Any(HasRailwayOp);
+
+    private RenderFragment RenderRailwayNode(RailwayNode node, int depth) => __builder =>
+    {
+        var isFailure = node.IsSuccess == false || node.Status == SpanStatus.Error;
+        var isSuccess = node.IsSuccess == true;
+        var bg        = isFailure ? "rgba(239,68,68,0.08)" : isSuccess ? "rgba(16,185,129,0.08)" : "transparent";
+        var border    = isFailure ? "#EF4444" : isSuccess ? "#10B981" : "#1F2937";
+        var indent    = depth * 20;
+
+        <div style="@($"margin-left:{indent}px; border-left:2px solid {border}; padding:6px 10px; margin-bottom:4px; background:{bg}; border-radius:0 6px 6px 0;")">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                @if (node.Operation is not null)
+                {
+                    <span style="font-size:.7rem; padding:1px 8px; border-radius:4px; background:rgba(59,130,246,0.2); color:#60A5FA; font-family:'JetBrains Mono',monospace; font-weight:700;">
+                        @node.Operation
+                    </span>
+                }
+                <span style="font-size:.8rem; color:#E5E7EB;">@node.Name</span>
+                @if (isSuccess)
+                {
+                    <span style="font-size:.7rem; color:#10B981;">✓ Success</span>
+                }
+                @if (isFailure)
+                {
+                    <span style="font-size:.7rem; color:#EF4444;">✗ Failure</span>
+                }
+                @if (!string.IsNullOrEmpty(node.ErrorCode))
+                {
+                    <code style="font-size:.7rem; color:#F87171; font-family:'JetBrains Mono',monospace;">@node.ErrorCode</code>
+                }
+                <span style="font-size:.7rem; color:#6B7280; margin-left:auto;">@node.DurationMs ms</span>
+            </div>
+            @if (!string.IsNullOrEmpty(node.StatusMessage) && isFailure)
+            {
+                <div style="font-size:.72rem; color:#9CA3AF; margin-top:3px; font-style:italic;">@node.StatusMessage</div>
+            }
+        </div>
+
+        @foreach (var child in node.Children)
+        {
+            @RenderRailwayNode(child, depth + 1)
+        }
+    };
+}

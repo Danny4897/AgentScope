@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>AgentScope.Web</RootNamespace>
+    <NoWarn>$(NoWarn);CS8034;NU1301</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -9,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../AgentScope.Api/AgentScope.Api.csproj" />
+    <ProjectReference Include="../AgentScope.Infrastructure/AgentScope.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

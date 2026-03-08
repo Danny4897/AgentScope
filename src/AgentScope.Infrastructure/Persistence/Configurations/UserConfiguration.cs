@@ -14,6 +14,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.Email).IsUnique();
         builder.Property(u => u.DisplayName).HasMaxLength(100).IsRequired();
         builder.Property(u => u.Tier).HasConversion<string>().HasMaxLength(20);
+        builder.Property(u => u.SshPublicKey).HasColumnName("ssh_public_key");
+        builder.Property(u => u.GitHubId).HasMaxLength(64).HasColumnName("git_hub_id");
+        builder.HasIndex(u => u.GitHubId).IsUnique().HasFilter("git_hub_id IS NOT NULL");
         builder.Property(u => u.CreatedAt).IsRequired();
 
         builder.HasMany(u => u.Applications)

@@ -21,6 +21,16 @@ public sealed class Span
     /// <summary>OTLP attributes serialised as JSON (e.g. model name, token counts).</summary>
     public string AttributesJson { get; private set; } = "{}";
 
+    // ── Railway-Oriented Programming fields ──────────────────────────────────
+    /// <summary>The ROP combinator this span represents (Bind, Map, Then, TryCatch, Match).</summary>
+    public RailwayOperation? RailwayOp { get; private set; }
+
+    /// <summary><c>true</c> if the monadic result was Success, <c>false</c> if Failure, <c>null</c> if not a ROP span.</summary>
+    public bool? ResultIsSuccess { get; private set; }
+
+    /// <summary>Typed error code from <c>agentscope.error.code</c> attribute, present only on failure.</summary>
+    public string? RailwayErrorCode { get; private set; }
+
     // Navigation
     public IReadOnlyCollection<AgentEvent> Events => _events.AsReadOnly();
     private readonly List<AgentEvent> _events = [];
@@ -37,22 +47,31 @@ public sealed class Span
         string? statusMessage,
         DateTimeOffset startedAt,
         DateTimeOffset endedAt,
-        string attributesJson = "{}") =>
+        string attributesJson = "{}",
+        RailwayOperation? railwayOp = null,
+        bool? resultIsSuccess = null,
+        string? railwayErrorCode = null) =>
         new()
         {
-            Id             = Guid.NewGuid(),
-            TraceId        = traceId,
-            SpanId         = spanId,
-            ParentSpanId   = parentSpanId,
-            Name           = name,
-            Kind           = kind,
-            Status         = status,
-            StatusMessage  = statusMessage,
-            StartedAt      = startedAt,
-            EndedAt        = endedAt,
-            AttributesJson = attributesJson,
+            Id               = Guid.NewGuid(),
+            TraceId          = traceId,
+            SpanId           = spanId,
+            ParentSpanId     = parentSpanId,
+            Name             = name,
+            Kind             = kind,
+            Status           = status,
+            StatusMessage    = statusMessage,
+            StartedAt        = startedAt,
+            EndedAt          = endedAt,
+            AttributesJson   = attributesJson,
+            RailwayOp        = railwayOp,
+            ResultIsSuccess  = resultIsSuccess,
+            RailwayErrorCode = railwayErrorCode,
         };
 }
 
 public enum SpanKind  { Internal, Server, Client, Producer, Consumer }
 public enum SpanStatus { Unset, Ok, Error }
+
+/// <summary>Railway-Oriented Programming combinator type.</summary>
+public enum RailwayOperation { Bind, Map, Then, TryCatch, Match }

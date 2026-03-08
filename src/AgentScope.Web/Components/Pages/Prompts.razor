@@ -1,0 +1,300 @@
+@page "/prompts"
+@attribute [Authorize]
+@inject DashboardService Svc
+@inject CurrentUserService CurrentUser
+@implements IDisposable
+
+<PageTitle>Prompts — AgentScope</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-1" Style="font-weight:700;">Prompt CMS</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Manage versioned prompt templates fetched by the SDK at runtime</MudText>
+
+<!-- App selector -->
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid #313244; border-radius:12px;">
+    <MudGrid Spacing="2" AlignItems="Center">
+        <MudItem xs="12" sm="6">
+            <MudSelect T="Guid?" Label="Application" @bind-Value="_selectedAppId" @bind-Value:after="LoadPrompts"
+                       Clearable="true" Dense="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft">
+                @foreach (var app in _apps)
+                {
+                    <MudSelectItem T="Guid?" Value="@app.Id">@app.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="_selectedAppId == null"
+                       OnClick="OpenCreateDialog">New Prompt</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_selectedAppId == null)
+{
+    <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="0" Style="border:1px solid #313244; border-radius:12px;">
+        <MudIcon Icon="@Icons.Material.Filled.TextSnippet" Style="font-size:3rem; color:#585B70;" Class="mb-2" />
+        <MudText Color="Color.Secondary">Select an application to manage its prompts.</MudText>
+    </MudPaper>
+}
+else if (_prompts.Count == 0)
+{
+    <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="0" Style="border:1px solid #313244; border-radius:12px;">
+        <MudIcon Icon="@Icons.Material.Filled.TextSnippet" Style="font-size:3rem; color:#585B70;" Class="mb-2" />
+        <MudText Color="Color.Secondary" Class="mb-2">No prompts yet.</MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="OpenCreateDialog">Create your first prompt</MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var prompt in _prompts)
+        {
+            <MudItem xs="12" md="6" lg="4">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid #313244; border-radius:12px; height:100%;">
+                    <!-- Header -->
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Style="font-family:monospace; font-weight:700; color:#89B4FA;">@prompt.Slug</MudText>
+                        <MudSpacer />
+                        <span style="padding:2px 8px; border-radius:4px; font-size:.7rem; font-weight:700; background:#1e3a2f; color:#A6E3A1;">v@(prompt.Version)</span>
+                    </MudStack>
+
+                    @if (!string.IsNullOrWhiteSpace(prompt.ChangeNote))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@prompt.ChangeNote</MudText>
+                    }
+
+                    <!-- Content preview -->
+                    <MudPaper Class="pa-3 mb-3" Elevation="0"
+                              Style="background:#181825; border-radius:8px; max-height:120px; overflow:hidden; position:relative;">
+                        <pre style="margin:0; font-size:.78rem; color:#CDD6F4; white-space:pre-wrap; word-break:break-word;">@(prompt.Content.Length > 300 ? prompt.Content[..300] + "…" : prompt.Content)</pre>
+                    </MudPaper>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                        Published @prompt.PublishedAt.ToString("dd MMM yyyy HH:mm")
+                    </MudText>
+
+                    <!-- Actions -->
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => OpenPublishDialog(prompt))">Publish New Version</MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.History"
+                                   OnClick="@(() => OpenHistoryDialog(prompt.Slug))">History</MudButton>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeletePrompt(prompt.Slug))" />
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<!-- Create Dialog -->
+<MudDialog @bind-IsVisible="_showCreate" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">New Prompt</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_newSlug" Label="Slug" Placeholder="e.g. system-prompt"
+                      Variant="Variant.Outlined" FullWidth="true" Class="mb-3"
+                      HelperText="URL-safe identifier, unique per application" />
+        <MudTextField @bind-Value="_newContent" Label="Content" Lines="12"
+                      Variant="Variant.Outlined" FullWidth="true" Class="mb-3"
+                      Style="font-family:monospace;" />
+        <MudTextField @bind-Value="_newChangeNote" Label="Change note (optional)"
+                      Variant="Variant.Outlined" FullWidth="true" />
+        @if (_dialogError is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_dialogError</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => { _showCreate = false; _dialogError = null; })">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreatePrompt">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Publish New Version Dialog -->
+<MudDialog @bind-IsVisible="_showPublish" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">Publish New Version — <span style="color:#89B4FA;">@_editingSlug</span></MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_newContent" Label="Content" Lines="12"
+                      Variant="Variant.Outlined" FullWidth="true" Class="mb-3"
+                      Style="font-family:monospace;" />
+        <MudTextField @bind-Value="_newChangeNote" Label="Change note (optional)"
+                      Variant="Variant.Outlined" FullWidth="true" />
+        @if (_dialogError is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_dialogError</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => { _showPublish = false; _dialogError = null; })">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="PublishVersion">Publish</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- History Dialog -->
+<MudDialog @bind-IsVisible="_showHistory" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+    <TitleContent><MudText Typo="Typo.h6">Version History — <span style="color:#89B4FA;">@_editingSlug</span></MudText></TitleContent>
+    <DialogContent>
+        @if (_history.Count == 0)
+        {
+            <MudText Color="Color.Secondary">No history available.</MudText>
+        }
+        else
+        {
+            <MudTable Items="_history" Dense="true" Elevation="0" Style="background:transparent;">
+                <HeaderContent>
+                    <MudTh>Version</MudTh>
+                    <MudTh>Change Note</MudTh>
+                    <MudTh>Published</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <span style="font-family:monospace; color:#89B4FA;">v@(context.Version)</span>
+                    </MudTd>
+                    <MudTd><MudText Typo="Typo.body2">@(context.ChangeNote ?? "—")</MudText></MudTd>
+                    <MudTd><MudText Typo="Typo.body2">@context.PublishedAt.ToString("dd MMM yyyy HH:mm")</MudText></MudTd>
+                    <MudTd>
+                        @if (context.IsActive)
+                        {
+                            <span style="padding:2px 8px; border-radius:4px; font-size:.7rem; font-weight:700; background:#1e3a2f; color:#A6E3A1;">Active</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @if (!context.IsActive)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Warning"
+                                       OnClick="@(() => RollbackToVersion(context.Version))">Rollback</MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showHistory = false)">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private record PromptRow(Guid Id, Guid ApplicationId, string Slug, int Version, string Content,
+        string? ChangeNote, bool IsActive, DateTimeOffset PublishedAt);
+
+    private List<Application> _apps     = [];
+    private List<PromptRow>   _prompts  = [];
+    private List<PromptRow>   _history  = [];
+    private Guid?  _userId;
+    private Guid?  _selectedAppId;
+    private bool   _loading;
+
+    // Dialog state
+    private bool   _showCreate;
+    private bool   _showPublish;
+    private bool   _showHistory;
+    private string _newSlug       = "";
+    private string _newContent    = "";
+    private string _newChangeNote = "";
+    private string _editingSlug   = "";
+    private string? _dialogError;
+
+    private readonly CancellationTokenSource _cts = new();
+    private HttpClient? _http;
+
+    [Inject] private IHttpClientFactory HttpFactory { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userId = await CurrentUser.GetUserIdAsync();
+        _apps   = await Svc.GetApplicationsAsync(_userId, _cts.Token);
+        _http   = HttpFactory.CreateClient("AgentScopeApi");
+    }
+
+    private async Task LoadPrompts()
+    {
+        if (_selectedAppId == null) { _prompts = []; return; }
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            var rows = await Svc.GetPromptsAsync(_selectedAppId.Value, _cts.Token);
+            _prompts = rows.Select(p => new PromptRow(p.Id, p.ApplicationId, p.Slug, p.Version, p.Content, p.ChangeNote, p.IsActive, p.PublishedAt)).ToList();
+        }
+        catch (OperationCanceledException) { }
+        finally { _loading = false; }
+    }
+
+    private void OpenCreateDialog()
+    {
+        _newSlug = ""; _newContent = ""; _newChangeNote = ""; _dialogError = null;
+        _showCreate = true;
+    }
+
+    private void OpenPublishDialog(PromptRow p)
+    {
+        _editingSlug = p.Slug; _newContent = p.Content; _newChangeNote = ""; _dialogError = null;
+        _showPublish = true;
+    }
+
+    private async Task OpenHistoryDialog(string slug)
+    {
+        _editingSlug = slug;
+        _history = [];
+        _showHistory = true;
+        if (_selectedAppId == null) return;
+        var rows = await Svc.GetPromptHistoryAsync(_selectedAppId.Value, slug, _cts.Token);
+        _history = rows.Select(p => new PromptRow(p.Id, p.ApplicationId, p.Slug, p.Version, p.Content, p.ChangeNote, p.IsActive, p.PublishedAt)).ToList();
+        StateHasChanged();
+    }
+
+    private async Task CreatePrompt()
+    {
+        if (_selectedAppId == null) return;
+        if (string.IsNullOrWhiteSpace(_newSlug)) { _dialogError = "Slug is required."; return; }
+        if (string.IsNullOrWhiteSpace(_newContent)) { _dialogError = "Content is required."; return; }
+
+        var ok = await Svc.CreatePromptAsync(_selectedAppId.Value, _newSlug, _newContent, _newChangeNote, _cts.Token);
+        if (!ok) { _dialogError = "Failed to create prompt. Slug may already exist."; return; }
+
+        _showCreate = false;
+        await LoadPrompts();
+    }
+
+    private async Task PublishVersion()
+    {
+        if (_selectedAppId == null) return;
+        if (string.IsNullOrWhiteSpace(_newContent)) { _dialogError = "Content is required."; return; }
+
+        var ok = await Svc.PublishPromptVersionAsync(_selectedAppId.Value, _editingSlug, _newContent, _newChangeNote, _cts.Token);
+        if (!ok) { _dialogError = "Failed to publish new version."; return; }
+
+        _showPublish = false;
+        await LoadPrompts();
+    }
+
+    private async Task RollbackToVersion(int version)
+    {
+        if (_selectedAppId == null) return;
+        await Svc.RollbackPromptAsync(_selectedAppId.Value, _editingSlug, version, _cts.Token);
+        _showHistory = false;
+        await LoadPrompts();
+    }
+
+    private async Task DeletePrompt(string slug)
+    {
+        if (_selectedAppId == null) return;
+        await Svc.DeletePromptAsync(_selectedAppId.Value, slug, _cts.Token);
+        await LoadPrompts();
+    }
+
+    public void Dispose() => _cts.Cancel();
+}

@@ -1,0 +1,366 @@
+@page "/"
+@attribute [Authorize]
+@inject DashboardService Svc
+@inject CurrentUserService CurrentUser
+
+<PageTitle>Dashboard — AgentScope</PageTitle>
+
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px;">
+    <div>
+        <MudText Typo="Typo.h5" Style="font-weight:700; color:#F9FAFB; letter-spacing:-.3px;">Dashboard</MudText>
+        <MudText Typo="Typo.body2" Style="color:#6B7280; margin-top:2px;">Last 24 hours — real-time observability</MudText>
+    </div>
+    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+               StartIcon="@Icons.Material.Outlined.Refresh"
+               Style="border-color:#1F2937; color:#9CA3AF; font-size:.75rem;"
+               OnClick="Refresh">
+        Refresh
+    </MudButton>
+</div>
+
+@if (_summary is null)
+{
+    <MudGrid Spacing="3" Class="mb-8">
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; height:110px;">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="16px" Width="60%" Class="mb-3" />
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="32px" Width="40%" />
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+else
+{
+    @* Onboarding widget — shown when user has no apps or no traces *@
+    @if (_summary.ActiveApps == 0 || _summary.TotalTraces == 0)
+    {
+        <MudPaper Elevation="0" Class="mb-8"
+                  Style="background:#0D1829; border:1px solid #1E3A5F; border-radius:12px; padding:28px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                <MudIcon Icon="@Icons.Material.Outlined.RocketLaunch" Style="color:#3B82F6; font-size:24px;" />
+                <MudText Typo="Typo.subtitle1" Style="font-weight:700; color:#F9FAFB;">Get Started with AgentScope</MudText>
+            </div>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="4">
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="min-width:28px; height:28px; border-radius:50%; background:@(_summary.ActiveApps > 0 ? "#052e16" : "#1a2a3b"); border:1px solid @(_summary.ActiveApps > 0 ? "#14532d" : "#1E3A5F"); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:@(_summary.ActiveApps > 0 ? "#4ade80" : "#3B82F6");">
+                            @if (_summary.ActiveApps > 0) { <MudIcon Icon="@Icons.Material.Filled.Check" Style="font-size:14px;" /> } else { <span>1</span> }
+                        </div>
+                        <div>
+                            <div style="font-weight:600; color:#E5E7EB; font-size:14px; margin-bottom:4px;">Create an Application</div>
+                            <div style="font-size:12px; color:#6B7280; margin-bottom:8px;">Register your AI agent app to get an API key.</div>
+                            <MudLink Href="/apps" Style="font-size:12px; color:#3B82F6; font-weight:500;">Go to Applications →</MudLink>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="min-width:28px; height:28px; border-radius:50%; background:#1a2a3b; border:1px solid #1E3A5F; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#3B82F6;">2</div>
+                        <div>
+                            <div style="font-weight:600; color:#E5E7EB; font-size:14px; margin-bottom:4px;">Install the SDK</div>
+                            <div style="font-size:12px; color:#6B7280; margin-bottom:8px;">Add the AgentScope SDK to your .NET project.</div>
+                            <div style="background:#0A0E1A; border:1px solid #1F2937; border-radius:6px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
+                                <code style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#60A5FA; flex:1;">dotnet add package AgentScope.Sdk</code>
+                                <MudIconButton Icon="@Icons.Material.Outlined.ContentCopy"
+                                               Size="Size.Small" Style="color:#6B7280; padding:2px;"
+                                               OnClick="@(() => CopyToClipboard("dotnet add package AgentScope.Sdk"))" />
+                            </div>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <div style="display:flex; gap:12px; align-items:flex-start;">
+                        <div style="min-width:28px; height:28px; border-radius:50%; background:#1a2a3b; border:1px solid #1E3A5F; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#3B82F6;">3</div>
+                        <div>
+                            <div style="font-weight:600; color:#E5E7EB; font-size:14px; margin-bottom:4px;">Send your first trace</div>
+                            <div style="font-size:12px; color:#6B7280; margin-bottom:8px;">Configure OTLP export in your app.</div>
+                            <div style="background:#0A0E1A; border:1px solid #1F2937; border-radius:6px; padding:6px 10px;">
+                                <code style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#60A5FA; white-space:pre-wrap;">services.AddAgentScope(&#10;  apiKey: "sk_live_...");
+                                </code>
+                            </div>
+                        </div>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    <!-- KPI Cards -->
+    <MudGrid Spacing="3" Class="mb-8">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-5 kpi-card" Elevation="0"
+                      Style="border:1px solid #1F2937; border-radius:12px; background:#111827 !important;">
+                <div class="kpi-icon" style="background:rgba(59,130,246,0.12);">
+                    <MudIcon Icon="@Icons.Material.Outlined.Route" Style="color:#3B82F6; font-size:20px;" />
+                </div>
+                <div class="kpi-label">Total Traces</div>
+                <div class="kpi-value" style="color:#F9FAFB;">@_summary.TotalTraces</div>
+                <div style="font-size:.72rem; color:#4B5563; margin-top:4px;">24h window</div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            @{
+                var rateColor = _summary.SuccessRate >= 95 ? "#10B981" : _summary.SuccessRate >= 80 ? "#F59E0B" : "#EF4444";
+                var rateBg = _summary.SuccessRate >= 95 ? "rgba(16,185,129,0.1)" : _summary.SuccessRate >= 80 ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)";
+                var rateIcon = _summary.SuccessRate >= 95 ? Icons.Material.Outlined.CheckCircle : Icons.Material.Outlined.Warning;
+            }
+            <MudPaper Class="pa-5 kpi-card" Elevation="0"
+                      Style="border:1px solid #1F2937; border-radius:12px; background:#111827 !important;">
+                <div class="kpi-icon" style="@($"background:{rateBg};")">
+                    <MudIcon Icon="@rateIcon" Style="@($"color:{rateColor}; font-size:20px;")" />
+                </div>
+                <div class="kpi-label">Success Rate</div>
+                <div class="kpi-value" style="@($"color:{rateColor};")">@_summary.SuccessRate.ToString("F1")%</div>
+                <div style="font-size:.72rem; color:#4B5563; margin-top:4px;">@_summary.FailedTraces failed</div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            @{
+                var latencyColor = _summary.AvgLatencyMs < 500 ? "#10B981" : _summary.AvgLatencyMs < 2000 ? "#F59E0B" : "#EF4444";
+            }
+            <MudPaper Class="pa-5 kpi-card" Elevation="0"
+                      Style="border:1px solid #1F2937; border-radius:12px; background:#111827 !important;">
+                <div class="kpi-icon" style="background:rgba(139,92,246,0.12);">
+                    <MudIcon Icon="@Icons.Material.Outlined.Speed" Style="color:#8B5CF6; font-size:20px;" />
+                </div>
+                <div class="kpi-label">Avg Latency</div>
+                <div class="kpi-value" style="@($"color:{latencyColor};")">@_summary.AvgLatencyMs.ToString("F0")<span style="font-size:1rem; font-weight:500; color:#6B7280;"> ms</span></div>
+                <div style="font-size:.72rem; color:#4B5563; margin-top:4px;">per pipeline</div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-5 kpi-card" Elevation="0"
+                      Style="border:1px solid #1F2937; border-radius:12px; background:#111827 !important;">
+                <div class="kpi-icon" style="background:rgba(16,185,129,0.12);">
+                    <MudIcon Icon="@Icons.Material.Outlined.Apps" Style="color:#10B981; font-size:20px;" />
+                </div>
+                <div class="kpi-label">Active Apps</div>
+                <div class="kpi-value" style="color:#F9FAFB;">@_summary.ActiveApps</div>
+                <div style="font-size:.72rem; color:#4B5563; margin-top:4px;">instrumented</div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Recent Traces -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600; color:#F9FAFB;">Recent Traces</MudText>
+        <MudLink Href="/traces" Typo="Typo.caption" Style="color:#3B82F6;">View all →</MudLink>
+    </div>
+
+    <MudPaper Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden; background:#111827 !important;">
+        <MudTable Items="_recentTraces" Hover="true" Dense="true" Elevation="0" Style="background:transparent !important;">
+            <HeaderContent>
+                <MudTh>Trace ID</MudTh>
+                <MudTh>Pipeline</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Duration</MudTh>
+                <MudTh>Started</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudLink Href="@($"/traces/{context.Id}")" Typo="Typo.body2"
+                             Style="font-family:'JetBrains Mono',monospace; color:#60A5FA; font-size:.8rem;">
+                        @context.TraceId[..Math.Min(8, context.TraceId.Length)]…
+                    </MudLink>
+                </MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2" Style="color:#E5E7EB;">@context.RootSpanName</MudText>
+                </MudTd>
+                <MudTd>
+                    @{
+                        var (cls, lbl) = context.Status switch
+                        {
+                            TraceStatus.Success => ("badge badge-success", "Success"),
+                            TraceStatus.Failure => ("badge badge-failure", "Failure"),
+                            TraceStatus.Running => ("badge badge-running", "Running"),
+                            TraceStatus.Timeout => ("badge badge-timeout", "Timeout"),
+                            _                   => ("badge badge-unknown", context.Status.ToString()),
+                        };
+                    }
+                    <span class="@cls">@lbl</span>
+                </MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2" Style="color:#9CA3AF; font-family:'JetBrains Mono',monospace; font-size:.8rem;">
+                        @($"{context.DurationMs} ms")
+                    </MudText>
+                </MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2" Style="color:#6B7280; font-size:.8rem;">
+                        @context.StartedAt.ToString("dd/MM HH:mm:ss")
+                    </MudText>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div style="padding:48px; text-align:center;">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inbox" Style="color:#374151; font-size:40px; margin-bottom:12px; display:block;" />
+                    <MudText Typo="Typo.body2" Style="color:#6B7280;">No traces yet — instrument your app with the AgentScope SDK.</MudText>
+                </div>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+    <!-- Cost & Token Usage -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; margin-top:32px;">
+        <div>
+            <MudText Typo="Typo.subtitle1" Style="font-weight:600; color:#F9FAFB;">Cost & Token Usage</MudText>
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">Last 30 days — estimated cost by LLM model</MudText>
+        </div>
+        @if (_costDashboard is not null && _costDashboard.TotalCostUsd > 0)
+        {
+            <span style="font-size:1.1rem; font-weight:700; color:#10B981; font-family:'JetBrains Mono',monospace;">
+                $@_costDashboard.TotalCostUsd.ToString("F4")
+            </span>
+        }
+    </div>
+
+    <MudPaper Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden; background:#111827 !important; margin-bottom:32px;">
+        @if (_costDashboard is null)
+        {
+            <div style="padding:32px; text-align:center;">
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+            </div>
+        }
+        else if (_costDashboard.ByModel.Count == 0)
+        {
+            <div style="padding:32px; text-align:center;">
+                <MudIcon Icon="@Icons.Material.Outlined.MonetizationOn" Style="color:#374151; font-size:36px; margin-bottom:8px; display:block;" />
+                <MudText Typo="Typo.body2" Style="color:#6B7280;">No token usage yet — cost tracking activates on first LLM span.</MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="_costDashboard.ByModel" Hover="true" Dense="true" Elevation="0" Style="background:transparent !important;">
+                <HeaderContent>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Model</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Tokens</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Est. Cost (USD)</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Share</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <code style="font-family:'JetBrains Mono',monospace; font-size:.78rem; color:#60A5FA;">@context.Model</code>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="color:#E5E7EB; font-family:'JetBrains Mono',monospace;">@context.Tokens.ToString("N0")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="color:#10B981; font-family:'JetBrains Mono',monospace;">$@context.CostUsd.ToString("F4")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <div style="display:flex; align-items:center; gap:8px; min-width:120px;">
+                            <div style="flex:1; height:5px; background:#1F2937; border-radius:3px; overflow:hidden;">
+                                <div style="@($"width:{context.Percentage:F0}%; height:100%; border-radius:3px; background:#3B82F6;")"></div>
+                            </div>
+                            <span style="font-size:.75rem; color:#9CA3AF; min-width:38px; text-align:right;">@($"{context.Percentage:F1}%")</span>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+
+    <!-- Error Analysis -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; margin-top:32px;">
+        <div>
+            <MudText Typo="Typo.subtitle1" Style="font-weight:600; color:#F9FAFB;">Error Analysis</MudText>
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">Top errors by frequency — monadic (handled) vs unhandled exceptions</MudText>
+        </div>
+        @{
+            var monadicCount   = _errorSummary?.Where(e => e.Kind == "Monadic").Sum(e => e.Count) ?? 0;
+            var exceptionCount = _errorSummary?.Where(e => e.Kind == "Exception").Sum(e => e.Count) ?? 0;
+            var totalErrors    = monadicCount + exceptionCount;
+        }
+        @if (totalErrors > 0)
+        {
+            <div style="display:flex; gap:12px; align-items:center;">
+                <span style="font-size:.72rem; padding:3px 10px; border-radius:20px; background:rgba(59,130,246,0.15); color:#60A5FA;">
+                    Monadic @($"{monadicCount * 100 / totalErrors}%")
+                </span>
+                <span style="font-size:.72rem; padding:3px 10px; border-radius:20px; background:rgba(239,68,68,0.15); color:#F87171;">
+                    Exception @($"{exceptionCount * 100 / totalErrors}%")
+                </span>
+            </div>
+        }
+    </div>
+
+    <MudPaper Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden; background:#111827 !important; margin-bottom:32px;">
+        @if (_errorSummary is null)
+        {
+            <div style="padding:32px; text-align:center;">
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudTable Items="_errorSummary" Hover="true" Dense="true" Elevation="0" Style="background:transparent !important;">
+                <HeaderContent>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Error Type</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Kind</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Count</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">% of Errors</MudTh>
+                    <MudTh Style="color:#6B7280; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Suggestion</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <code style="font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#F87171;">@context.ErrorType</code>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.Kind == "Monadic")
+                        {
+                            <span style="font-size:.7rem; padding:2px 8px; border-radius:4px; background:rgba(59,130,246,0.15); color:#60A5FA; font-weight:600;">Monadic</span>
+                        }
+                        else
+                        {
+                            <span style="font-size:.7rem; padding:2px 8px; border-radius:4px; background:rgba(239,68,68,0.15); color:#F87171; font-weight:600;">Exception</span>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="color:#E5E7EB; font-family:'JetBrains Mono',monospace;">@context.Count</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <div style="display:flex; align-items:center; gap:8px; min-width:130px;">
+                            <div style="flex:1; height:5px; background:#1F2937; border-radius:3px; overflow:hidden;">
+                                <div style="@($"width:{context.Percentage:F0}%; height:100%; border-radius:3px; background:{(context.Kind == "Monadic" ? "#3B82F6" : "#EF4444")};")"></div>
+                            </div>
+                            <span style="font-size:.75rem; color:#9CA3AF; min-width:38px; text-align:right;">@($"{context.Percentage:F1}%")</span>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.caption" Style="color:#6B7280; font-style:italic;">@context.Suggestion</MudText>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private DashboardSummary?      _summary;
+    private List<Trace>?           _recentTraces;
+    private CostDashboard?         _costDashboard;
+    private List<ErrorSummaryRow>? _errorSummary;
+
+    protected override async Task OnInitializedAsync() => await Refresh();
+
+    private async Task Refresh()
+    {
+        _summary       = null;
+        _recentTraces  = null;
+        _costDashboard = null;
+        _errorSummary  = null;
+        var userId     = await CurrentUser.GetUserIdAsync();
+        _summary       = await Svc.GetSummaryAsync(userId);
+        _recentTraces  = await Svc.GetRecentTracesAsync(userId, 20);
+        _costDashboard = await Svc.GetCostDashboardAsync(userId);
+        _errorSummary  = await Svc.GetErrorSummaryAsync(userId);
+    }
+
+    private void CopyToClipboard(string text) { }
+}

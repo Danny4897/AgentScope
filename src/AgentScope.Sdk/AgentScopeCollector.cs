@@ -31,6 +31,7 @@ public static class AgentScopeCollector
         options.Validate();
 
         services.AddSingleton(options);
+        services.AddPromptClient(options);
 
         services.AddOpenTelemetry()
             .WithTracing(tracing =>
@@ -42,6 +43,11 @@ public static class AgentScopeCollector
                         otlp.Endpoint = new Uri($"{options.Endpoint.TrimEnd('/')}/v1/traces");
                         otlp.Headers  = $"x-api-key={options.ApiKey}";
                     });
+            })
+            .WithMetrics(metrics =>
+            {
+                // OTLP metrics export wired via MonadicSharp.Telemetry push-collector.
+                metrics.AddMeter(options.ServiceName);
             });
 
         return services;

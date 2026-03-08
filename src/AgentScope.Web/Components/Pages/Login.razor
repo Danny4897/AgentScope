@@ -1,0 +1,208 @@
+@page "/login"
+@layout AuthLayout
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Nav
+@inject JwtAuthStateProvider AuthProvider
+
+<MudPaper Elevation="0" Style="background:#111827; border:1px solid #1F2937; border-radius:12px; padding:32px;">
+    <MudText Typo="Typo.h5" Style="font-weight:700; color:#F9FAFB; margin-bottom:24px;">Sign in</MudText>
+
+    <MudTabs @bind-ActivePanelIndex="_tab" Elevation="0" Rounded="true" ApplyEffectsToContainer="true"
+             Style="background:transparent; margin-bottom:24px;">
+
+        @* ── SSH Key ── *@
+        <MudTabPanel Text="SSH Key" Icon="@Icons.Material.Outlined.Key">
+            <div style="padding-top:20px;">
+                @if (_sshStep == 0)
+                {
+                    <MudText Typo="Typo.body2" Style="color:#6B7280; margin-bottom:16px;">
+                        Enter the email you registered with your SSH key.
+                    </MudText>
+                    <MudTextField @bind-Value="_sshIdentity" Label="Email" InputType="InputType.Email"
+                                  Variant="Variant.Outlined" FullWidth="true" Class="mb-4" />
+                    @if (_error != null) { <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert> }
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                               OnClick="SshRequestChallenge" Disabled="_loading" Style="height:44px; font-weight:600;">
+                        @(_loading ? "..." : "Get challenge")
+                    </MudButton>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                        Run this command in your terminal, then paste the output below.
+                    </MudAlert>
+                    <div style="background:#0A0E1A; border:1px solid #374151; border-radius:8px; padding:12px; margin-bottom:16px; position:relative;">
+                        <code style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#60A5FA; display:block; word-break:break-all;">@_sshCommand</code>
+                    </div>
+                    <MudTextField @bind-Value="_sshSignature" Label="Paste signature here"
+                                  Variant="Variant.Outlined" FullWidth="true" Lines="6" Class="mb-4"
+                                  Placeholder="-----BEGIN SSH SIGNATURE-----&#10;...&#10;-----END SSH SIGNATURE-----" />
+                    @if (_error != null) { <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert> }
+                    <div style="display:flex; gap:8px;">
+                        <MudButton Variant="Variant.Outlined" Style="border-color:#374151; color:#9CA3AF;"
+                                   OnClick="() => { _sshStep = 0; _error = null; }">Back</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Style="flex:1; height:44px; font-weight:600;"
+                                   OnClick="SshVerify" Disabled="_loading">
+                            @(_loading ? "Verifying..." : "Sign in")
+                        </MudButton>
+                    </div>
+                }
+            </div>
+        </MudTabPanel>
+
+        @* ── GitHub ── *@
+        <MudTabPanel Text="GitHub" Icon="@Icons.Material.Outlined.Code">
+            <div style="padding-top:20px; text-align:center;">
+                <MudText Typo="Typo.body2" Style="color:#6B7280; margin-bottom:20px;">
+                    Sign in with your GitHub account. SSH keys from your profile will be imported automatically.
+                </MudText>
+                @if (_error != null) { <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert> }
+                <MudButton Variant="Variant.Filled" Style="background:#24292f; color:white; height:44px; font-weight:600; width:100%;"
+                           OnClick="GitHubLogin" Disabled="_loading" StartIcon="@Icons.Material.Outlined.OpenInNew">
+                    @(_loading ? "Redirecting..." : "Continue with GitHub")
+                </MudButton>
+            </div>
+        </MudTabPanel>
+
+        @* ── Email ── *@
+        <MudTabPanel Text="Email" Icon="@Icons.Material.Outlined.Email">
+            <div style="padding-top:20px;">
+                <MudTextField @bind-Value="_email" Label="Email" InputType="InputType.Email"
+                              Variant="Variant.Outlined" FullWidth="true" Class="mb-4" />
+                <MudTextField @bind-Value="_password" Label="Password" InputType="InputType.Password"
+                              Variant="Variant.Outlined" FullWidth="true" Class="mb-4" />
+                @if (_error != null) { <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert> }
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                           OnClick="EmailLogin" Disabled="_loading" Style="height:44px; font-weight:600;">
+                    @(_loading ? "Signing in..." : "Sign in")
+                </MudButton>
+            </div>
+        </MudTabPanel>
+    </MudTabs>
+
+    <div style="text-align:center; margin-top:8px;">
+        <MudText Typo="Typo.body2" Style="color:#6B7280;">
+            No account?
+            <MudLink Href="/register" Style="color:#3B82F6; text-decoration:none; font-weight:500;">Sign up</MudLink>
+        </MudText>
+    </div>
+</MudPaper>
+
+@code {
+    private int    _tab;
+    private bool   _loading;
+    private string? _error;
+
+    // SSH
+    private int    _sshStep;
+    private string _sshIdentity  = "";
+    private string _sshCommand   = "";
+    private string _sshSignature = "";
+
+    // Email
+    private string _email    = "";
+    private string _password = "";
+
+    private async Task SshRequestChallenge()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_sshIdentity)) { _error = "Email is required."; return; }
+        _loading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgentScopeApi");
+            var resp   = await client.PostAsJsonAsync("/api/v1/auth/ssh/challenge",
+                new { Identity = _sshIdentity });
+            if (resp.IsSuccessStatusCode)
+            {
+                var data    = await resp.Content.ReadFromJsonAsync<ChallengeResponse>();
+                _sshCommand = data!.Command;
+                _sshStep    = 1;
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ErrorResponse>();
+                _error  = err?.Error ?? "Identity not found.";
+            }
+        }
+        catch { _error = "Cannot reach the server."; }
+        finally { _loading = false; }
+    }
+
+    private async Task SshVerify()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_sshSignature)) { _error = "Paste the signature from your terminal."; return; }
+        _loading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgentScopeApi");
+            var resp   = await client.PostAsJsonAsync("/api/v1/auth/ssh/verify",
+                new { Identity = _sshIdentity, Signature = _sshSignature });
+            if (resp.IsSuccessStatusCode)
+            {
+                var auth = await resp.Content.ReadFromJsonAsync<AuthResponse>();
+                await AuthProvider.NotifyLoginAsync(auth!.Token);
+                Nav.NavigateTo("/");
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ErrorResponse>();
+                _error  = err?.Error ?? "Verification failed.";
+            }
+        }
+        catch { _error = "Cannot reach the server."; }
+        finally { _loading = false; }
+    }
+
+    private async Task GitHubLogin()
+    {
+        _error   = null;
+        _loading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgentScopeApi");
+            var resp   = await client.GetFromJsonAsync<GitHubUrlResponse>("/api/v1/auth/github/url");
+            if (resp?.Url != null)
+                Nav.NavigateTo(resp.Url, forceLoad: true);
+            else
+                _error = "GitHub OAuth not configured on the server.";
+        }
+        catch (Exception ex) { _error = $"Error: {ex.GetType().Name} — {ex.Message}"; }
+    finally { _loading = false; }
+    }
+
+    private async Task EmailLogin()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password))
+        {
+            _error = "Email and password are required."; return;
+        }
+        _loading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AgentScopeApi");
+            var resp   = await client.PostAsJsonAsync("/api/v1/auth/login",
+                new { Email = _email, Password = _password });
+            if (resp.IsSuccessStatusCode)
+            {
+                var auth = await resp.Content.ReadFromJsonAsync<AuthResponse>();
+                await AuthProvider.NotifyLoginAsync(auth!.Token);
+                Nav.NavigateTo("/");
+            }
+            else
+            {
+                var err = await resp.Content.ReadFromJsonAsync<ErrorResponse>();
+                _error  = err?.Error ?? "Invalid credentials.";
+            }
+        }
+        catch { _error = "Cannot reach the server."; }
+        finally { _loading = false; }
+    }
+
+    private record AuthResponse(string Token, string Email, string DisplayName);
+    private record ChallengeResponse(string Nonce, string Command);
+    private record GitHubUrlResponse(string Url, string State);
+    private record ErrorResponse(string? Error);
+}

@@ -56,4 +56,57 @@ public static class DomainErrors
             Error.Create($"A user with email '{email}' already exists.", "USER_DUPLICATE_EMAIL")
                  .WithMetadata("Email", email);
     }
+    
+    public static class Auth
+    {
+        public static Error EmailInUse() =>
+            Error.Create("Email already in use.", "AUTH_EMAIL_IN_USE");
+
+        public static Error CreationError(string errors) =>
+            Error.Create(errors, "AUTH_CREATION_ERROR");
+
+        public static Error InvalidCredentials() =>
+            Error.Create("Invalid email or password.", "AUTH_INVALID_CREDENTIALS");
+
+        public static Error UserNotFound() =>
+            Error.Create("Domain user not found.", "AUTH_USER_NOT_FOUND");
+    }
+
+    public static class Railway
+    {
+        public static Error OperationFailed(string operation, string errorCode) =>
+            Error.Create($"Railway operation '{operation}' failed with '{errorCode}'.", "RAILWAY_OPERATION_FAILED")
+                 .WithMetadata("Operation", operation)
+                 .WithMetadata("ErrorCode", errorCode);
+    }
+
+    public static class Billing
+    {
+        public static Error UnknownModel(string model) =>
+            Error.Create($"No pricing data for model '{model}'.", "BILLING_UNKNOWN_MODEL")
+                 .WithMetadata("Model", model);
+    }
+
+    public static class Prompts
+    {
+        public static Error NotFound(string slug) =>
+            Error.Create($"Prompt '{slug}' not found.", "PROMPT_NOT_FOUND")
+                 .WithMetadata("Slug", slug);
+
+        public static Error VersionNotFound(string slug, int version) =>
+            Error.Create($"Prompt '{slug}' version {version.ToString(System.Globalization.CultureInfo.InvariantCulture)} not found.", "PROMPT_VERSION_NOT_FOUND")
+                 .WithMetadata("Slug", slug)
+                 .WithMetadata("Version", version.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        public static Error NoActiveVersion(string slug) =>
+            Error.Create($"No active version for prompt '{slug}'.", "PROMPT_NO_ACTIVE_VERSION")
+                 .WithMetadata("Slug", slug);
+
+        public static Error SlugConflict(string slug) =>
+            Error.Create($"A prompt with slug '{slug}' already exists. Use PUT to publish a new version.", "PROMPT_SLUG_CONFLICT")
+                 .WithMetadata("Slug", slug);
+
+        public static Error EmptyContent() =>
+            Error.Create("Prompt content cannot be empty.", "PROMPT_EMPTY_CONTENT");
+    }
 }

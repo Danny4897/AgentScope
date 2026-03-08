@@ -1,18 +1,123 @@
 @inherits LayoutComponentBase
+@inject JwtAuthStateProvider AuthProvider
+@inject NavigationManager Nav
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" IsDarkMode="true" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudText Typo="Typo.h6">AgentScope</MudText>
+    <MudAppBar Elevation="0">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#3B82F6,#1D4ED8);
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:11px; font-weight:700; color:white; letter-spacing:-.5px;">AS</div>
+            <MudText Typo="Typo.h6" Style="font-weight:700; letter-spacing:-.3px; color:#F9FAFB;">
+                Agent<span style="color:#3B82F6;">Scope</span>
+            </MudText>
+        </div>
         <MudSpacer />
+        <div style="display:flex; align-items:center; gap:8px; margin-right:8px;">
+            <span class="live-dot"></span>
+            <MudText Typo="Typo.caption" Style="color:#6B7280;">Live</MudText>
+        </div>
+        <AuthorizeView>
+            <Authorized>
+                <MudTooltip Text="Sign out">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Logout"
+                                   Color="Color.Inherit"
+                                   Size="Size.Small"
+                                   OnClick="Logout" />
+                </MudTooltip>
+            </Authorized>
+        </AuthorizeView>
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                 Style="border-color:#1F2937; color:#6B7280; font-size:.65rem; font-weight:600; letter-spacing:.05em;">
+            BETA
+        </MudChip>
     </MudAppBar>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <MudDrawer @bind-Open="_drawerOpen"
+               Elevation="0"
+               Variant="DrawerVariant.Mini"
+               OpenMiniOnHover="true">
+        <div class="section-title">Navigation</div>
+        <MudNavMenu>
+            <MudNavLink Href="/"
+                        Match="NavLinkMatch.All"
+                        Icon="@Icons.Material.Outlined.SpaceDashboard">
+                Dashboard
+            </MudNavLink>
+            <MudNavLink Href="/traces"
+                        Icon="@Icons.Material.Outlined.AccountTree">
+                Traces
+            </MudNavLink>
+            <MudNavLink Href="/metrics"
+                        Icon="@Icons.Material.Outlined.ShowChart">
+                Metrics
+            </MudNavLink>
+            <MudNavLink Href="/apps"
+                        Icon="@Icons.Material.Outlined.Apps">
+                Applications
+            </MudNavLink>
+            <MudNavLink Href="/prompts"
+                        Icon="@Icons.Material.Outlined.TextSnippet">
+                Prompts
+            </MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="pt-16">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-6">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private bool _drawerOpen;
+
+    private async Task Logout()
+    {
+        await AuthProvider.NotifyLogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary          = "#3B82F6",
+            PrimaryDarken    = "#1D4ED8",
+            PrimaryLighten   = "#93C5FD",
+            Secondary        = "#6B7280",
+            Success          = "#10B981",
+            Error            = "#EF4444",
+            Warning          = "#F59E0B",
+            Info             = "#3B82F6",
+            Background       = "#0A0E1A",
+            BackgroundGray   = "#0D1117",
+            Surface          = "#111827",
+            AppbarBackground = "#0A0E1A",
+            DrawerBackground = "#0D1117",
+            DrawerText       = "#9CA3AF",
+            TextPrimary      = "#F9FAFB",
+            TextSecondary    = "#9CA3AF",
+            TextDisabled     = "#4B5563",
+            ActionDefault    = "#9CA3AF",
+            Divider          = "#1F2937",
+            TableLines       = "#1F2937",
+            LinesDefault     = "#1F2937",
+            OverlayDark      = "rgba(0,0,0,0.7)",
+            HoverOpacity     = 0.04,
+            RippleOpacity    = 0.05,
+        }
+    };
+
+    void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

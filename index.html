@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentScope — AI Agent Observability for .NET</title>
+  <meta name="description" content="See every agent. Trace every pipeline. Catch every failure — natively in .NET. The first observability platform built for C# and MonadicSharp.">
+  <link rel="stylesheet" href="assets/custom.css">
+</head>
+<body>
+
+<!-- Background elements -->
+<div class="grid-bg"></div>
+<div class="glow-orb" style="width:500px;height:500px;background:radial-gradient(circle,rgba(189,255,0,0.04),transparent 70%);top:-100px;left:-100px;"></div>
+<div class="glow-orb" style="width:600px;height:600px;background:radial-gradient(circle,rgba(77,158,255,0.04),transparent 70%);bottom:0;right:-100px;"></div>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar">
+  <div class="container">
+    <div class="navbar-inner">
+      <a href="/" class="logo">
+        <div class="logo-mark">AS</div>
+        <span class="logo-text">Agent<span>Scope</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">features</a></li>
+        <li><a href="#code">sdk</a></li>
+        <li><a href="#pricing">pricing</a></li>
+        <li><a href="https://github.com/Danny4897/AgentScope" target="_blank">github ↗</a></li>
+      </ul>
+      <a href="#get-started" class="btn btn-accent">Get Started →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="container">
+  <div class="hero">
+    <!-- Left -->
+    <div class="hero-left">
+      <p class="hero-label">// AI Agent Observability · .NET Native</p>
+      <div class="pill pill-accent" style="margin-bottom:28px;">
+        <span class="pill-dot"></span>
+        Now in Beta
+      </div>
+      <h1 class="hero-title">
+        See Every<br>
+        <span class="accent">Agent.</span><br>
+        <span class="dim">Catch Every</span><br>
+        Failure.
+      </h1>
+      <p class="hero-subtitle">
+        Where LangSmith is Python-first, AgentScope speaks fluent C#.
+        Built on <code>MonadicSharp</code>, OpenTelemetry, and ASP.NET Core 8.
+        Two lines to instrument. Zero compromises.
+      </p>
+      <div class="hero-cta">
+        <div class="cmd-block">
+          <span class="prompt">$</span>
+          <code id="cmd-text">dotnet add package AgentScope.Sdk</code>
+          <button class="copy-btn" onclick="copyCmd()" title="Copy">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+        </div>
+        <a href="#features" class="btn btn-ghost">View Features</a>
+      </div>
+      <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:20px;letter-spacing:0.5px;">
+        Compatible with Semantic Kernel · Microsoft.Extensions.AI · OpenAI SDK
+      </p>
+    </div>
+
+    <!-- Right: Animated Trace Waterfall -->
+    <div class="hero-right">
+      <div class="trace-viz" id="trace-viz">
+        <div class="trace-header">
+          <span class="trace-id">trace_id: a7f3e2b1c9d04...</span>
+          <span class="trace-status-ok">
+            <svg width="8" height="8" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
+            SUCCESS · 847ms
+          </span>
+        </div>
+
+        <!-- Root span -->
+        <div class="span-row" style="animation-delay:0.2s;">
+          <span class="span-name mono">ChatAgent.Run</span>
+          <div class="span-bar-track">
+            <div class="span-bar bar-root" style="--w:97%; left:0%; animation-delay:0.3s;"></div>
+          </div>
+          <span class="span-ms mono">847ms</span>
+        </div>
+
+        <div class="span-row" style="animation-delay:0.5s;">
+          <span class="span-name mono"><span class="indent">├ </span>Memory.Retrieve</span>
+          <div class="span-bar-track">
+            <div class="span-bar bar-memory" style="--w:8%; left:1%; animation-delay:0.6s;"></div>
+          </div>
+          <span class="span-ms mono">62ms</span>
+        </div>
+
+        <div class="span-row" style="animation-delay:0.8s;">
+          <span class="span-name mono"><span class="indent">├ </span>LLM.Invoke</span>
+          <div class="span-bar-track">
+            <div class="span-bar bar-llm" style="--w:68%; left:10%; animation-delay:0.9s;"></div>
+          </div>
+          <span class="span-ms mono">581ms</span>
+        </div>
+
+        <div class="span-row" style="animation-delay:1.1s;">
+          <span class="span-name mono"><span class="indent2">└ </span>Tool.SearchWeb</span>
+          <div class="span-bar-track">
+            <div class="span-bar bar-tool" style="--w:30%; left:10%; animation-delay:1.2s;"></div>
+          </div>
+          <span class="span-ms mono">248ms</span>
+        </div>
+
+        <div class="span-row" style="animation-delay:1.4s;">
+          <span class="span-name mono"><span class="indent">└ </span>Memory.Persist</span>
+          <div class="span-bar-track">
+            <div class="span-bar bar-memory" style="--w:6%; left:80%; animation-delay:1.5s;"></div>
+          </div>
+          <span class="span-ms mono">48ms</span>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px;">
+          <div class="trace-header" style="margin-bottom:12px;">
+            <span class="trace-id">trace_id: 9c1b4a72ef056...</span>
+            <span class="trace-status-err">
+              <svg width="8" height="8" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>
+              FAILURE · 1.2s
+            </span>
+          </div>
+          <div class="span-row" style="animation-delay:1.7s;">
+            <span class="span-name mono">SummaryAgent.Run</span>
+            <div class="span-bar-track">
+              <div class="span-bar bar-root" style="--w:95%; left:0%; animation-delay:1.8s; opacity:0.4;"></div>
+            </div>
+            <span class="span-ms mono">1200ms</span>
+          </div>
+          <div class="span-row" style="animation-delay:2.0s;">
+            <span class="span-name mono"><span class="indent">└ </span>LLM.Invoke</span>
+            <div class="span-bar-track">
+              <div class="span-bar bar-error" style="--w:90%; left:3%; animation-delay:2.1s;"></div>
+            </div>
+            <span class="span-ms mono" style="color:var(--error);">1140ms</span>
+          </div>
+          <div style="margin-top:12px;padding:10px 12px;background:rgba(255,75,75,0.06);border:1px solid rgba(255,75,75,0.2);font-family:var(--font-mono);font-size:11px;color:var(--error);">
+            Result.Failure: TOKEN_LIMIT_EXCEEDED — invisible to Sentry
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MARQUEE ── -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <span class="marquee-item">MonadicSharp.Framework</span>
+    <span class="marquee-item">Semantic Kernel</span>
+    <span class="marquee-item">Microsoft.Extensions.AI</span>
+    <span class="marquee-item">OpenAI .NET SDK</span>
+    <span class="marquee-item">Azure OpenAI</span>
+    <span class="marquee-item">OpenTelemetry</span>
+    <span class="marquee-item">ASP.NET Core 8</span>
+    <span class="marquee-item">Entity Framework Core</span>
+    <span class="marquee-item">Railway-Oriented Programming</span>
+    <span class="marquee-item">MonadicSharp.Framework</span>
+    <span class="marquee-item">Semantic Kernel</span>
+    <span class="marquee-item">Microsoft.Extensions.AI</span>
+    <span class="marquee-item">OpenAI .NET SDK</span>
+    <span class="marquee-item">Azure OpenAI</span>
+    <span class="marquee-item">OpenTelemetry</span>
+    <span class="marquee-item">ASP.NET Core 8</span>
+    <span class="marquee-item">Entity Framework Core</span>
+    <span class="marquee-item">Railway-Oriented Programming</span>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section id="features" style="padding:100px 0;">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">// Features</p>
+      <h2 class="section-title">Observability built<br>for C# engineers.</h2>
+      <p class="section-sub">
+        Not a Python tool ported to .NET. Built from the ground up
+        for the way .NET developers actually write AI pipelines.
+      </p>
+    </div>
+
+    <div class="features-grid reveal" style="transition-delay:0.1s;">
+
+      <div class="feature-card featured">
+        <div class="feature-number">01</div>
+        <div class="feature-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Result.Failure Tracking</h3>
+        <p class="feature-desc">
+          In Railway-Oriented Programming, errors don't throw. They flow as
+          <code style="color:var(--accent);">Result.Failure</code> values.
+          Sentry, Datadog, Bugsnag — none of them see this.
+          AgentScope does. Every failed Result is captured with full context:
+          domain error code, token cost, span ancestry.
+        </p>
+        <div style="margin-top:24px;padding:14px;background:rgba(189,255,0,0.04);border-left:2px solid var(--accent);">
+          <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">
+            "AgentScope caught 847 silent failures last month that would have
+            gone completely undetected."
+          </p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-number">02</div>
+        <div class="feature-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Pipeline Waterfall</h3>
+        <p class="feature-desc">
+          Interactive span hierarchy viewer. See exactly which agent step,
+          LLM call, or tool invocation is costing you time and tokens.
+          Drill down to the millisecond.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-number">03</div>
+        <div class="feature-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Real-time Metrics</h3>
+        <p class="feature-desc">
+          Latency, throughput, failure rate, and token usage per pipeline.
+          Aggregated at 1-min, 5-min, and 1-hour windows.
+          Live, no refresh required.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-number">04</div>
+        <div class="feature-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">CircuitBreaker Monitor</h3>
+        <p class="feature-desc">
+          Live state transitions: Closed → Open → HalfOpen.
+          Know before your external services fail.
+          Protect your LLM budget from retry storms.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-number">05</div>
+        <div class="feature-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Audit Trail</h3>
+        <p class="feature-desc">
+          Full chronological log of agent decisions via
+          <code style="color:var(--accent);">MonadicSharp.Security</code>.
+          GDPR-ready event sourcing for every AI interaction.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-number">06</div>
+        <div class="feature-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">2-Line SDK</h3>
+        <p class="feature-desc">
+          <code style="color:var(--accent);">dotnet add package AgentScope.Sdk</code>.
+          Auto-discovers all ActivitySource traces.
+          Compatible with any OTLP-compatible .NET app.
+          No lock-in, no proprietary agent code.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CODE SECTION ── -->
+<section id="code" class="code-section" style="border-top:1px solid var(--border);">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">// Integration</p>
+      <h2 class="section-title">Instrument in<br>two lines.</h2>
+      <p class="section-sub">
+        That's all it takes. AgentScope auto-discovers your traces
+        through OpenTelemetry's ActivitySource protocol.
+      </p>
+    </div>
+
+    <div class="code-compare reveal" style="transition-delay:0.15s;">
+      <div class="code-panel">
+        <div class="code-panel-header">
+          <span class="code-panel-title title-bad">// without agentscope</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--error);">flying blind</span>
+        </div>
+        <span class="c-kw">var</span> result = <span class="c-kw">await</span> agent.<span class="c-fn">ProcessAsync</span>(input);<br>
+        <br>
+        <span class="c-cm">// result.IsFailure?</span><br>
+        <span class="c-cm">// You'll never know.</span><br>
+        <span class="c-cm">// Sentry sees nothing.</span><br>
+        <span class="c-cm">// Datadog sees nothing.</span><br>
+        <span class="c-cm">// The tokens burned.</span><br>
+        <span class="c-cm">// The error silently propagated.</span><br>
+        <br>
+        <span class="c-kw">return</span> result;
+      </div>
+      <div class="code-panel">
+        <div class="code-panel-header">
+          <span class="code-panel-title title-good">// with agentscope</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--accent);">full visibility</span>
+        </div>
+        <span class="c-cm">// Program.cs — one-time setup</span><br>
+        builder.Services.<span class="c-fn">AddAgentScope</span>(options =><br>
+        {<br>
+        <span class="indent"></span>options.Endpoint = <span class="c-str">"https://app.agentscope.io"</span>;<br>
+        <span class="indent"></span>options.ApiKey = <span class="c-fn">Environment</span>.<span class="c-fn">GetEnvironmentVariable</span>(<span class="c-str">"AS_KEY"</span>)!;<br>
+        <span class="indent"></span>options.ServiceName = <span class="c-str">"my-ai-pipeline"</span>;<br>
+        });<br>
+        <br>
+        <span class="c-cm">// That's it. Every trace, span, failure,</span><br>
+        <span class="c-cm">// token count — automatically captured.</span><br>
+        <span class="c-acc">// Result.Failure values included.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="stats-grid reveal">
+      <div class="stat-item">
+        <div class="stat-value">2<span>ms</span></div>
+        <div class="stat-label">SDK overhead</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value"><span>&lt;</span>1MB</div>
+        <div class="stat-label">SDK size</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">100<span>%</span></div>
+        <div class="stat-label">OTLP compatible</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">0<span>↑</span></div>
+        <div class="stat-label">Silent failures missed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PRICING ── -->
+<section id="pricing" class="pricing-section">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">// Pricing</p>
+      <h2 class="section-title">Simple.<br>Transparent.</h2>
+      <p class="section-sub">Scale observability with your agents. No surprise bills.</p>
+    </div>
+
+    <div class="pricing-grid reveal" style="transition-delay:0.1s;">
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Free</div>
+        <div class="pricing-price"><sup>$</sup>0</div>
+        <div class="pricing-period">forever</div>
+        <ul class="pricing-features">
+          <li><span class="check">+</span> 1 app</li>
+          <li><span class="check">+</span> 7-day retention</li>
+          <li><span class="check">+</span> 10k events / mo</li>
+          <li><span class="check">+</span> Trace waterfall</li>
+          <li><span class="dash">—</span> Alerts</li>
+          <li><span class="dash">—</span> API access</li>
+        </ul>
+        <a href="#get-started" class="btn btn-ghost" style="width:100%;justify-content:center;">Start Free</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Popular</div>
+        <div class="pricing-tier" style="color:var(--accent);">Pro</div>
+        <div class="pricing-price"><sup>$</sup>19</div>
+        <div class="pricing-period">per month</div>
+        <ul class="pricing-features">
+          <li><span class="check">+</span> 5 apps</li>
+          <li><span class="check">+</span> 30-day retention</li>
+          <li><span class="check">+</span> 500k events / mo</li>
+          <li><span class="check">+</span> Trace waterfall</li>
+          <li><span class="check">+</span> Email alerts</li>
+          <li><span class="dash">—</span> API access</li>
+        </ul>
+        <a href="#get-started" class="btn btn-accent" style="width:100%;justify-content:center;">Go Pro →</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Business</div>
+        <div class="pricing-price"><sup>$</sup>49</div>
+        <div class="pricing-period">per month</div>
+        <ul class="pricing-features">
+          <li><span class="check">+</span> Unlimited apps</li>
+          <li><span class="check">+</span> 90-day retention</li>
+          <li><span class="check">+</span> Unlimited events</li>
+          <li><span class="check">+</span> Trace waterfall</li>
+          <li><span class="check">+</span> Slack / Teams alerts</li>
+          <li><span class="check">+</span> REST API access</li>
+        </ul>
+        <a href="#get-started" class="btn btn-ghost" style="width:100%;justify-content:center;">Contact Us</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section id="get-started" class="cta-section" style="border-top:1px solid var(--border);">
+  <div class="container reveal">
+    <p class="section-label" style="justify-content:center;display:flex;">//&nbsp;Get Started</p>
+    <h2 class="cta-title">Stop flying blind.<br><span style="color:var(--accent);">Instrument now.</span></h2>
+    <p class="cta-sub">
+      Two lines of code. Full pipeline visibility. Free forever for one app.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="https://github.com/Danny4897/AgentScope" class="btn btn-accent">
+        View on GitHub →
+      </a>
+      <div class="cmd-block">
+        <span class="prompt">$</span>
+        <code>dotnet add package AgentScope.Sdk</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <span>© 2026 AgentScope — Native .NET AI Observability</span>
+      <div class="footer-links">
+        <a href="https://github.com/Danny4897/AgentScope" target="_blank">GitHub</a>
+        <a href="#pricing">Pricing</a>
+        <a href="mailto:hello@agentscope.io">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Copy command
+function copyCmd() {
+  navigator.clipboard.writeText('dotnet add package AgentScope.Sdk');
+  const btn = document.querySelector('.copy-btn');
+  btn.innerHTML = '<svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';
+  btn.style.color = 'var(--accent)';
+  setTimeout(() => {
+    btn.innerHTML = '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+    btn.style.color = '';
+  }, 2000);
+}
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

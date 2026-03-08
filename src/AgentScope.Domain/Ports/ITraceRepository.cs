@@ -20,4 +20,11 @@ public interface ITraceRepository
 
     /// <summary>Deletes all traces older than the given retention cutoff.</summary>
     Task<Result<int>> PurgeOlderThanAsync(DateTimeOffset cutoff, CancellationToken ct = default);
+
+    /// <summary>Counts spans within the given time window for quota enforcement.</summary>
+    Task<Result<long>> CountSpansByApplicationAsync(
+        Guid applicationId,
+        DateTimeOffset fromTime,
+        DateTimeOffset toTime,
+        CancellationToken ct = default);
 }

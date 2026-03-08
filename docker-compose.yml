@@ -46,7 +46,7 @@ services:
       ConnectionStrings__Postgres: "Host=postgres;Database=agentscope;Username=agentscope;Password=agentscope_dev"
       ConnectionStrings__Redis: "redis:6379"
     ports:
-      - "5000:8080"
+      - "5100:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,10 +63,14 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ApiBaseUrl: "http://api:8080"
+      ConnectionStrings__Postgres: "Host=postgres;Database=agentscope;Username=agentscope;Password=agentscope_dev"
     ports:
-      - "5001:8080"
+      - "5101:8080"
     depends_on:
-      - api
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
 
 volumes:
   postgres_data:

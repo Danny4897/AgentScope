@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Geist', sans-serif;
+    background-color: #050505;
+    color: #e5e7eb;
+}
+
+/* Glassmorphism */
+.glass-card {
+    background: rgba(17, 24, 39, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 8px 40px rgba(59, 130, 246, 0.15);
+}
+
+/* Text Gradients */
+.text-gradient {
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Entrance Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* Code Block styling */
+.code-block {
+    background: #0f172a;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 0.5rem;
+}

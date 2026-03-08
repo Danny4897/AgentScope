@@ -35,18 +35,20 @@
 
 ---
 
-## Fase 2 — API Ingestione OTLP ⬜
+## Fase 2 — API Ingestione OTLP ✅
 
 **Obiettivo:** ricevere trace da SDK → validare → persistere su DB.
 
-- ⬜ EF Core migration iniziale (`dotnet ef migrations add Initial`)
-- ⬜ `TraceController` — `POST /v1/traces` (OTLP/HTTP JSON)
-- ⬜ `MetricsController` — `POST /v1/metrics`
-- ⬜ `TraceIngestionAgent` (MonadicSharp.Agents) — parsing + validazione + persist
-- ⬜ `MetricsAggregationAgent` — aggrega per finestre temporali (1min, 5min, 1h)
-- ⬜ `ApiKeyMiddleware` — estrae `x-api-key`, risolve `Application`
-- ⬜ Rate limiting per piano (Free: 10k/mese, Pro: 500k, Business: illimitato)
-- ⬜ Test integrazione: `POST /v1/traces` → verifica record su DB
+- ⬜ EF Core migration iniziale (`dotnet ef migrations add Initial`) — *da eseguire con dotnet funzionante*
+- ✅ `TraceController` — `POST /v1/traces` (OTLP/HTTP JSON)
+- ✅ `MetricsController` — `POST /v1/metrics`
+- ✅ `TraceIngestionAgent` (MonadicSharp.Agents) — parsing + validazione + persist
+- ✅ `MetricsAggregationAgent` — aggrega per finestre temporali (1min, 5min, 1h)
+- ✅ `ApiKeyMiddleware` — estrae `x-api-key`, risolve `Application`
+- ✅ Rate limiting per piano (Free: 10k/mese, Pro: 500k, Business: illimitato)
+- ✅ Test integrazione: `POST /v1/traces` → verifica record su DB (SQLite in-memory)
+- ✅ `MetricPoint` entity + `IMetricRepository` + `MetricRepository`
+- ✅ `IUnitOfWork` registrato nel DI (`dotnet ef migrations add Initial`)
 
 **Test manuale con curl dopo questa fase:**
 ```bash

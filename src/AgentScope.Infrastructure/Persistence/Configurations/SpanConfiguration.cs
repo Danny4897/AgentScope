@@ -22,6 +22,13 @@ public sealed class SpanConfiguration : IEntityTypeConfiguration<Span>
         builder.Property(s => s.EndedAt).IsRequired();
         builder.Property(s => s.AttributesJson).HasColumnType("jsonb").IsRequired();
 
+        builder.Property(s => s.RailwayOp)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasColumnName("railway_op");
+        builder.Property(s => s.ResultIsSuccess).HasColumnName("result_is_success");
+        builder.Property(s => s.RailwayErrorCode).HasMaxLength(200).HasColumnName("railway_error_code");
+
         builder.HasMany(s => s.Events)
             .WithOne()
             .HasForeignKey(e => e.SpanId)

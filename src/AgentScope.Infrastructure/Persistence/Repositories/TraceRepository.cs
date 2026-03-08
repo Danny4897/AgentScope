@@ -59,4 +59,18 @@ public sealed class TraceRepository : ITraceRepository
             .ExecuteDeleteAsync(ct);
         return Result<int>.Success(deleted);
     }
+
+    public async Task<Result<long>> CountSpansByApplicationAsync(
+        Guid applicationId,
+        DateTimeOffset fromTime,
+        DateTimeOffset toTime,
+        CancellationToken ct = default)
+    {
+        var count = await _db.Traces
+            .Where(t => t.ApplicationId == applicationId && t.StartedAt >= fromTime && t.StartedAt <= toTime)
+            .SelectMany(t => t.Spans)
+            .LongCountAsync(ct);
+
+        return Result<long>.Success(count);
+    }
 }

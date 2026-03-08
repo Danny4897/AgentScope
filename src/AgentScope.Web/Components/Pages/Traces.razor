@@ -1,0 +1,130 @@
+@page "/traces"
+@attribute [Authorize]
+@inject DashboardService Svc
+@inject CurrentUserService CurrentUser
+@implements IDisposable
+
+<PageTitle>Traces — AgentScope</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-1" Style="font-weight:700;">Traces</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">All ingested pipelines</MudText>
+
+<!-- Filters -->
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid #313244; border-radius:12px;">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="5">
+            <MudSelect T="Guid?" Label="Application" @bind-Value="_appFilter"
+                       Clearable="true" Dense="true" Variant="Variant.Outlined"
+                       AnchorOrigin="Origin.BottomLeft">
+                @foreach (var app in _apps)
+                {
+                    <MudSelectItem T="Guid?" Value="@app.Id">@app.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="TraceStatus?" Label="Status" @bind-Value="_statusFilter"
+                       Clearable="true" Dense="true" Variant="Variant.Outlined"
+                       AnchorOrigin="Origin.BottomLeft">
+                @foreach (TraceStatus s in Enum.GetValues<TraceStatus>())
+                {
+                    <MudSelectItem T="TraceStatus?" Value="@((TraceStatus?)s)">@s</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       FullWidth="true" OnClick="ApplyFilters">Apply</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<!-- Table -->
+<MudPaper Elevation="0" Style="border:1px solid #313244; border-radius:12px; overflow:hidden;">
+    <MudTable Items="_traces" Hover="true" Dense="true" Elevation="0"
+              RowsPerPage="20" Loading="_loading"
+              Style="background:transparent;">
+        <HeaderContent>
+            <MudTh>Trace ID</MudTh>
+            <MudTh>Pipeline</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Spans</MudTh>
+            <MudTh>Duration</MudTh>
+            <MudTh>Started</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudLink Href="@($"/traces/{context.Id}")" Style="font-family:monospace; color:#89B4FA; font-size:.85rem;">
+                    @context.TraceId[..Math.Min(12, context.TraceId.Length)]
+                </MudLink>
+            </MudTd>
+            <MudTd><MudText Typo="Typo.body2">@context.RootSpanName</MudText></MudTd>
+            <MudTd>
+                @{
+                    var (label, bg, fg) = context.Status switch
+                    {
+                        TraceStatus.Success => ("Success", "#1e3a2f", "#A6E3A1"),
+                        TraceStatus.Failure => ("Failure", "#3b1a20", "#F38BA8"),
+                        TraceStatus.Running => ("Running", "#1a2a3b", "#89B4FA"),
+                        TraceStatus.Timeout => ("Timeout", "#3b2a1a", "#FAB387"),
+                        _                   => (context.Status.ToString(), "#2a2a2a", "#A6ADC8"),
+                    };
+                }
+                <span style="padding:2px 8px; border-radius:4px; font-size:.75rem; font-weight:600; background:@bg; color:@fg;">@label</span>
+            </MudTd>
+            <MudTd><MudText Typo="Typo.body2">@context.SpanCount</MudText></MudTd>
+            <MudTd><MudText Typo="Typo.body2">@context.DurationMs ms</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @context.StartedAt.ToString("dd/MM HH:mm:ss")
+                </MudText>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">No traces match the current filters.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{20,50,100}" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private record TraceRow(Guid Id, string TraceId, string? RootSpanName, TraceStatus Status,
+        int SpanCount, long? DurationMs, DateTimeOffset StartedAt);
+
+    private List<TraceRow>    _traces = [];
+    private List<Application> _apps   = [];
+    private Guid?        _appFilter;
+    private TraceStatus? _statusFilter;
+    private bool         _loading;
+    private Guid?        _userId;
+
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userId = await CurrentUser.GetUserIdAsync();
+        _apps   = await Svc.GetApplicationsAsync(_userId, _cts.Token);
+        await LoadTraces();
+    }
+
+    private async Task ApplyFilters() => await LoadTraces();
+
+    private async Task LoadTraces()
+    {
+        if (_cts.IsCancellationRequested) return;
+        _loading = true;
+        try
+        {
+            var (items, _) = await Svc.GetTracesPageAsync(_userId, _appFilter, _statusFilter, 1, 200, _cts.Token);
+            _traces = items.Select(t => new TraceRow(
+                t.Id, t.TraceId, t.RootSpanName, t.Status,
+                t.Spans.Count, t.DurationMs, t.StartedAt)).ToList();
+        }
+        catch (OperationCanceledException) { }
+        finally { _loading = false; }
+    }
+
+    public void Dispose() => _cts.Cancel();
+}
