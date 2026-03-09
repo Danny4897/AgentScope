@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MonadicSharp.Persistence.Core;
 using MonadicSharp.Persistence.Implementations;
+using StackExchange.Redis;
 
 namespace AgentScope.Infrastructure;
 
@@ -44,9 +45,16 @@ public static class DependencyInjection
                     ?? Environment.GetEnvironmentVariable("REDIS_URL");
 
         if (!string.IsNullOrWhiteSpace(redisUrl))
+        {
             services.AddStackExchangeRedisCache(opts => opts.Configuration = redisUrl);
+            // Direct multiplexer for rate limiter (sorted-set sliding window)
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+                ConnectionMultiplexer.Connect(redisUrl));
+        }
         else
+        {
             services.AddDistributedMemoryCache();
+        }
 
         // Unit of Work wrapping the same DbContext scope
         services.AddScoped<IUnitOfWork>(sp =>
