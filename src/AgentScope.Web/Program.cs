@@ -2,6 +2,7 @@ using AgentScope.Infrastructure;
 using AgentScope.Infrastructure.Persistence;
 using AgentScope.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
@@ -14,6 +15,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddMudServices();
+
+// Persist Data Protection keys to disk — survives container restarts, prevents antiforgery decryption errors
+builder.Services.AddDataProtection()
+    .SetApplicationName("AgentScope")
+    .PersistKeysToFileSystem(new DirectoryInfo("/data/dp-keys"));
 
 // Infrastructure: DbContext (scoped) + repositories — used by API-like services
 builder.Services.AddInfrastructure(builder.Configuration);

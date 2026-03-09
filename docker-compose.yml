@@ -64,14 +64,20 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ApiBaseUrl: "http://api:8080"
       ConnectionStrings__Postgres: "Host=postgres;Database=agentscope;Username=agentscope;Password=agentscope_dev"
+      ConnectionStrings__Redis: "redis:6379"
     ports:
       - "5101:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       api:
         condition: service_started
+    volumes:
+      - web_dp_keys:/data/dp-keys
 
 volumes:
   postgres_data:
   redis_data:
+  web_dp_keys:
