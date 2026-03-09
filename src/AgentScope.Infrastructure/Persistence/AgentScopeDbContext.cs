@@ -24,6 +24,7 @@ public sealed class AgentScopeDbContext : IdentityDbContext<IdentityUser>
     public DbSet<MetricPoint>  MetricPoints  => Set<MetricPoint>();
     public DbSet<TokenUsage>   TokenUsages   => Set<TokenUsage>();
     public DbSet<Prompt>       Prompts        => Set<Prompt>();
+    public DbSet<Evaluation>   Evaluations    => Set<Evaluation>();
     public DbSet<HitlReview>   HitlReviews    => Set<HitlReview>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -39,6 +40,7 @@ public sealed class AgentScopeDbContext : IdentityDbContext<IdentityUser>
         builder.ApplyConfiguration(new MetricPointConfiguration());
         builder.ApplyConfiguration(new TokenUsageConfiguration());
         builder.ApplyConfiguration(new PromptConfiguration());
+        builder.ApplyConfiguration(new EvaluationConfiguration());
         builder.ApplyConfiguration(new HitlReviewConfiguration());
     }
 }
