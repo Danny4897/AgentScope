@@ -25,6 +25,8 @@ public sealed record RailwayNode(
 public sealed record CostDashboard(
     decimal TotalCostUsd,
     long    TotalTokens,
+    decimal TodayCostUsd,
+    long    TodayTokens,
     List<ModelCostRow> ByModel);
 
 public sealed record ModelCostRow(
@@ -228,7 +230,10 @@ public sealed class DashboardService
 
         var rows = await query.ToListAsync(ct);
         if (rows.Count == 0)
-            return new CostDashboard(0m, 0L, []);
+            return new CostDashboard(0m, 0L, 0m, 0L, []);
+
+        var todayStart = DateTimeOffset.UtcNow.Date;
+        var todayRows  = rows.Where(r => r.RecordedAt >= todayStart).ToList();
 
         var total = rows.Sum(r => r.CostUsd);
         var byModel = rows
@@ -241,7 +246,12 @@ public sealed class DashboardService
             .OrderByDescending(r => r.CostUsd)
             .ToList();
 
-        return new CostDashboard(total, rows.Sum(r => (long)r.TotalTokens), byModel);
+        return new CostDashboard(
+            total,
+            rows.Sum(r => (long)r.TotalTokens),
+            todayRows.Sum(r => r.CostUsd),
+            todayRows.Sum(r => (long)r.TotalTokens),
+            byModel);
     }
 
     public async Task<List<ErrorSummaryRow>> GetErrorSummaryAsync(Guid? userId = null, CancellationToken ct = default)

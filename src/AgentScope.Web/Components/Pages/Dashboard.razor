@@ -119,7 +119,7 @@ else
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="2">
             @{
                 var latencyColor = _summary.AvgLatencyMs < 500 ? "#10B981" : _summary.AvgLatencyMs < 2000 ? "#F59E0B" : "#EF4444";
             }
@@ -134,7 +134,7 @@ else
             </MudPaper>
         </MudItem>
 
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="2">
             <MudPaper Class="pa-5 kpi-card" Elevation="0"
                       Style="border:1px solid #1F2937; border-radius:12px; background:#111827 !important;">
                 <div class="kpi-icon" style="background:rgba(16,185,129,0.12);">
@@ -143,6 +143,23 @@ else
                 <div class="kpi-label">Active Apps</div>
                 <div class="kpi-value" style="color:#F9FAFB;">@_summary.ActiveApps</div>
                 <div style="font-size:.72rem; color:#4B5563; margin-top:4px;">instrumented</div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+            @{
+                var todayCost   = _costDashboard?.TodayCostUsd ?? 0m;
+                var todayTokens = _costDashboard?.TodayTokens  ?? 0L;
+                var costColor   = todayCost == 0m ? "#6B7280" : "#10B981";
+            }
+            <MudPaper Class="pa-5 kpi-card" Elevation="0"
+                      Style="border:1px solid #1F2937; border-radius:12px; background:#111827 !important;">
+                <div class="kpi-icon" style="background:rgba(16,185,129,0.12);">
+                    <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Style="color:#10B981; font-size:20px;" />
+                </div>
+                <div class="kpi-label">Cost Today</div>
+                <div class="kpi-value" style="@($"color:{costColor}; font-size:1.2rem;")">$@todayCost.ToString("F4")</div>
+                <div style="font-size:.72rem; color:#4B5563; margin-top:4px;">@todayTokens.ToString("N0") tokens</div>
             </MudPaper>
         </MudItem>
     </MudGrid>
