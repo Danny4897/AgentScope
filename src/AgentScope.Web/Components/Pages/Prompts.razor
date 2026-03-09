@@ -11,7 +11,7 @@
 
 <!-- App selector -->
 <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid #313244; border-radius:12px;">
-    <MudGrid Spacing="2" AlignItems="Center">
+    <MudGrid Spacing="2" Style="align-items:center;">
         <MudItem xs="12" sm="6">
             <MudSelect T="Guid?" Label="Application" @bind-Value="_selectedAppId" @bind-Value:after="LoadPrompts"
                        Clearable="true" Dense="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft">
@@ -97,7 +97,7 @@ else
 }
 
 <!-- Create Dialog -->
-<MudDialog @bind-IsVisible="_showCreate" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+<MudDialog @bind-Visible="_showCreate" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">New Prompt</MudText></TitleContent>
     <DialogContent>
         <MudTextField @bind-Value="_newSlug" Label="Slug" Placeholder="e.g. system-prompt"
@@ -120,7 +120,7 @@ else
 </MudDialog>
 
 <!-- Publish New Version Dialog -->
-<MudDialog @bind-IsVisible="_showPublish" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
+<MudDialog @bind-Visible="_showPublish" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">Publish New Version — <span style="color:#89B4FA;">@_editingSlug</span></MudText></TitleContent>
     <DialogContent>
         <MudTextField @bind-Value="_newContent" Label="Content" Lines="12"
@@ -140,7 +140,7 @@ else
 </MudDialog>
 
 <!-- History Dialog -->
-<MudDialog @bind-IsVisible="_showHistory" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
+<MudDialog @bind-Visible="_showHistory" Options="@(new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true })">
     <TitleContent><MudText Typo="Typo.h6">Version History — <span style="color:#89B4FA;">@_editingSlug</span></MudText></TitleContent>
     <DialogContent>
         @if (_history.Count == 0)

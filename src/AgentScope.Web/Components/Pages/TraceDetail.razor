@@ -106,7 +106,7 @@ else
         <MudPaper Elevation="0" Class="mb-6 pa-4"
                   Style="border:1px solid #1F2937; border-radius:12px; background:#0A0E1A;">
             <div style="font-size:.72rem; color:#6B7280; margin-bottom:12px; letter-spacing:.05em; text-transform:uppercase;">
-                Bind / Map / Then chain — green = Success · red = Failure
+                Bind / Map / Then chain — green = Success · red = Failure · <span style="color:#F59E0B; text-transform:none;">amber</span> = Monadic · red badge = Exception
             </div>
             @foreach (var root in _railwayRoots)
             {
@@ -215,6 +215,14 @@ else
                 @if (isFailure)
                 {
                     <span style="font-size:.7rem; color:#EF4444;">✗ Failure</span>
+                    @if (node.ErrorKind is not null)
+                    {
+                        var kindColor = node.ErrorKind == "Monadic" ? "#F59E0B" : "#EF4444";
+                        var kindBg    = node.ErrorKind == "Monadic" ? "rgba(245,158,11,0.15)" : "rgba(239,68,68,0.15)";
+                        <span style="@($"font-size:.65rem; padding:1px 6px; border-radius:3px; background:{kindBg}; color:{kindColor}; font-family:'JetBrains Mono',monospace; font-weight:600; letter-spacing:.03em;")">
+                            @node.ErrorKind
+                        </span>
+                    }
                 }
                 @if (!string.IsNullOrEmpty(node.ErrorCode))
                 {
@@ -224,7 +232,9 @@ else
             </div>
             @if (!string.IsNullOrEmpty(node.StatusMessage) && isFailure)
             {
-                <div style="font-size:.72rem; color:#9CA3AF; margin-top:3px; font-style:italic;">@node.StatusMessage</div>
+                <div style="font-size:.72rem; color:#F87171; margin-top:3px; font-family:'JetBrains Mono',monospace;">
+                    <span style="margin-right:4px;">&#9888;</span>@node.StatusMessage
+                </div>
             }
         </div>
 

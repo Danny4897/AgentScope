@@ -15,6 +15,7 @@ public sealed record RailwayNode(
     bool?      IsSuccess,
     string?    ErrorCode,
     string?    StatusMessage,
+    string?    ErrorKind,        // "Monadic" | "Exception" | null
     long       DurationMs,
     SpanStatus Status,
     List<RailwayNode> Children);
@@ -189,16 +190,19 @@ public sealed class DashboardService
         var nodeMap = spans.ToDictionary(
             s => s.SpanId,
             s => new RailwayNode(
-                SpanId:       s.SpanId,
-                ParentSpanId: s.ParentSpanId,
-                Name:         s.Name,
-                Operation:    s.RailwayOp?.ToString(),
-                IsSuccess:    s.ResultIsSuccess,
-                ErrorCode:    s.RailwayErrorCode,
+                SpanId:        s.SpanId,
+                ParentSpanId:  s.ParentSpanId,
+                Name:          s.Name,
+                Operation:     s.RailwayOp?.ToString(),
+                IsSuccess:     s.ResultIsSuccess,
+                ErrorCode:     s.RailwayErrorCode,
                 StatusMessage: s.StatusMessage,
-                DurationMs:   s.DurationMs,
-                Status:       s.Status,
-                Children:     []));
+                ErrorKind:     s.ResultIsSuccess == false && s.StatusMessage is not null
+                                   ? Classify(s.StatusMessage).Kind
+                                   : null,
+                DurationMs:    s.DurationMs,
+                Status:        s.Status,
+                Children:      []));
 
         var roots = new List<RailwayNode>();
         foreach (var node in nodeMap.Values)
