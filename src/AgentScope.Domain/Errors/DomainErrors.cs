@@ -87,6 +87,20 @@ public static class DomainErrors
                  .WithMetadata("Model", model);
     }
 
+    public static class Stripe
+    {
+        public static Error CheckoutFailed(string detail) =>
+            Error.Create($"Stripe checkout failed: {detail}", "STRIPE_CHECKOUT_FAILED")
+                 .WithMetadata("Detail", detail);
+
+        public static Error WebhookVerificationFailed() =>
+            Error.Create("Stripe webhook signature verification failed.", "STRIPE_WEBHOOK_INVALID");
+
+        public static Error EventProcessingFailed(string eventType) =>
+            Error.Create($"Failed to process Stripe event '{eventType}'.", "STRIPE_EVENT_PROCESSING_FAILED")
+                 .WithMetadata("EventType", eventType);
+    }
+
     public static class Prompts
     {
         public static Error NotFound(string slug) =>

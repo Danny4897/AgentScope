@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenUsageRepository,   TokenUsageRepository>();
         services.AddScoped<IPromptRepository,       PromptRepository>();
         services.AddSingleton<ILlmPricingService,   LlmPricingService>();
+        services.AddScoped<IStripeService,          StripeService>();
 
         // Distributed cache — Redis when REDIS_URL is set, otherwise in-memory fallback
         var redisUrl = configuration.GetConnectionString("Redis")
