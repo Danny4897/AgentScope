@@ -19,5 +19,6 @@ public sealed class SubscriptionConfiguration : IEntityTypeConfiguration<Subscri
         builder.Property(s => s.CurrentPeriodEnd).IsRequired();
         builder.Property(s => s.CreatedAt).IsRequired();
         builder.Property(s => s.UpdatedAt).IsRequired();
+        builder.Property(s => s.StripeCustomerId).HasMaxLength(64).HasColumnName("stripe_customer_id");
     }
 }

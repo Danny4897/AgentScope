@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>AgentScope.Infrastructure</RootNamespace>
-    <NoWarn>$(NoWarn);CS8034</NoWarn>
+    <NoWarn>$(NoWarn);CS8034;CA1848</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +17,7 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.2" />
+    <PackageReference Include="Stripe.net" Version="47.2.0" />
   </ItemGroup>
 
   <ItemGroup>

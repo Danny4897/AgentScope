@@ -17,8 +17,11 @@ public sealed class Subscription
     public DateTimeOffset CurrentPeriodEnd { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
+    public string? StripeCustomerId { get; private set; }
 
     private Subscription() { StripeSubscriptionId = null!; StripePriceId = null!; }
+
+    public void SetStripeCustomerId(string customerId) => StripeCustomerId = customerId;
 
     public static Subscription Create(
         Guid userId,

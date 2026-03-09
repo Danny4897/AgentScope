@@ -115,6 +115,7 @@ var app = builder.Build();
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ix_prompts_app_slug_version ON prompts(application_id, slug, version);
         CREATE INDEX IF NOT EXISTS ix_prompts_app_slug_active ON prompts(application_id, slug, is_active);
+        ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(64);
         """);
     if (app.Environment.IsDevelopment())
         await DevDataSeeder.SeedAsync(db);
