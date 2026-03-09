@@ -66,6 +66,41 @@ else
         </div>
     </MudPaper>
 
+    <!-- Eval Panel -->
+    <MudPaper Class="pa-4 mb-4" Elevation="0"
+              Style="border:1px solid #1F2937; border-radius:12px;">
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <MudText Typo="Typo.body2" Style="color:#9CA3AF; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
+                Rate this trace
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ThumbUp"
+                           Color="@(_eval?.Score == EvalScore.ThumbsUp ? Color.Success : Color.Default)"
+                           Size="Size.Small"
+                           OnClick="@(() => RateAsync(EvalScore.ThumbsUp))"
+                           title="Good" />
+            <MudIconButton Icon="@Icons.Material.Filled.ThumbsUpDown"
+                           Color="@(_eval?.Score == EvalScore.Neutral ? Color.Warning : Color.Default)"
+                           Size="Size.Small"
+                           OnClick="@(() => RateAsync(EvalScore.Neutral))"
+                           title="Neutral" />
+            <MudIconButton Icon="@Icons.Material.Filled.ThumbDown"
+                           Color="@(_eval?.Score == EvalScore.ThumbsDown ? Color.Error : Color.Default)"
+                           Size="Size.Small"
+                           OnClick="@(() => RateAsync(EvalScore.ThumbsDown))"
+                           title="Bad" />
+            @if (_eval is not null)
+            {
+                var scoreLbl = _eval.Score switch {
+                    EvalScore.ThumbsUp   => ("👍 Good",    "#10B981"),
+                    EvalScore.Neutral    => ("↔ Neutral",  "#F59E0B"),
+                    EvalScore.ThumbsDown => ("👎 Bad",     "#EF4444"),
+                    _                   => ("",             "#6B7280"),
+                };
+                <span style="font-size:.78rem; color:@scoreLbl.Item2; font-weight:600;">@scoreLbl.Item1</span>
+            }
+        </div>
+    </MudPaper>
+
     <!-- Waterfall -->
     <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight:600; color:#F9FAFB;">Span Waterfall</MudText>
     <MudPaper Elevation="0" Class="mb-6" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden;">
@@ -172,6 +207,7 @@ else
     private List<Span>        _spans        = [];
     private List<RailwayNode> _railwayRoots = [];
     private bool              _loaded;
+    private Evaluation?       _eval;
 
     private List<BreadcrumbItem> _breadcrumbs =
     [
@@ -185,7 +221,16 @@ else
         _trace        = await Svc.GetTraceDetailAsync(Id);
         _spans        = _trace?.Spans.ToList() ?? [];
         _railwayRoots = await Svc.GetRailwayGraphAsync(Id);
+        _eval         = await Svc.GetEvalForTraceAsync(Id);
         _loaded       = true;
+    }
+
+    private async Task RateAsync(EvalScore score)
+    {
+        if (_trace is null) return;
+        await Svc.SaveEvalAsync(_trace.Id, _trace.ApplicationId, score, null, null);
+        _eval = await Svc.GetEvalForTraceAsync(_trace.Id);
+        StateHasChanged();
     }
 
     private static bool HasRailwayOp(RailwayNode n) =>

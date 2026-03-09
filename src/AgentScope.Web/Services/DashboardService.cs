@@ -387,6 +387,30 @@ public sealed class DashboardService
     private static PromptSummary ToSummary(Prompt p) =>
         new(p.Id, p.ApplicationId, p.Slug, p.Version, p.Content, p.ChangeNote, p.IsActive, p.PublishedAt);
 
+    // ── Evaluations ─────────────────────────────────────────────────────────────
+
+    public async Task<Evaluation?> GetEvalForTraceAsync(Guid traceId, CancellationToken ct = default)
+    {
+        await using var db = _factory.CreateDbContext();
+        return await db.Evaluations.FirstOrDefaultAsync(e => e.TraceId == traceId, ct);
+    }
+
+    public async Task SaveEvalAsync(Guid traceId, Guid applicationId, EvalScore score, string? note, Guid? userId, CancellationToken ct = default)
+    {
+        await using var db = _factory.CreateDbContext();
+        var existing = await db.Evaluations.FirstOrDefaultAsync(e => e.TraceId == traceId, ct);
+        if (existing is null)
+        {
+            var eval = Evaluation.Create(traceId, applicationId, score, null, note, userId);
+            await db.Evaluations.AddAsync(eval, ct);
+        }
+        else
+        {
+            existing.Update(score, existing.Label, note, userId);
+        }
+        await db.SaveChangesAsync(ct);
+    }
+
     private static async Task<List<Guid>?> GetUserAppIdsAsync(AgentScopeDbContext db, Guid? userId, CancellationToken ct)
     {
         if (!userId.HasValue) return null;
