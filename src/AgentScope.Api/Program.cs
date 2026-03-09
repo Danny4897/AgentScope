@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.RateLimiting;
 using AgentScope.Api;
 using AgentScope.Api.Agents;
 using AgentScope.Api.Middleware;
@@ -8,7 +7,6 @@ using AgentScope.Infrastructure;
 using AgentScope.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,8 +21,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 
-// Infrastructure (DbContext, repositories, UoW)
+// Infrastructure (DbContext, repositories, UoW, Redis)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Rate limiter options (Redis sliding window)
+builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection("RateLimit"));
 
 // ASP.NET Core Identity (requires Microsoft.NET.Sdk.Web — stays in API layer)
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
@@ -63,19 +64,6 @@ builder.Services.AddScoped<MetricsAggregationAgent>();
 // Retention background job
 builder.Services.AddHostedService<RetentionCleanupService>();
 
-// Rate limiter — sliding window per api-key (per-second bursts)
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddSlidingWindowLimiter("per-api-key", limiterOptions =>
-    {
-        limiterOptions.PermitLimit        = builder.Configuration.GetValue<int>("RateLimit:PermitLimit", 100);
-        limiterOptions.Window             = TimeSpan.FromSeconds(builder.Configuration.GetValue<int>("RateLimit:WindowSeconds", 60));
-        limiterOptions.SegmentsPerWindow  = 6;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit         = 10;
-    });
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-});
 
 // ── App pipeline ──────────────────────────────────────────────────────────────
 var app = builder.Build();
@@ -125,12 +113,12 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", ts = DateTime.U
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseRateLimiter();
-app.UseApiKeyAuth();   // validates x-api-key on /v1/* routes
+app.UseRateLimiting();  // Redis sliding window — before auth
+app.UseApiKeyAuth();    // validates x-api-key on /v1/* routes
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers().RequireRateLimiting("per-api-key");
+app.MapControllers();
 
 app.Run();
 
