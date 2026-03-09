@@ -1,0 +1,102 @@
+@page "/hitl"
+@attribute [Authorize]
+@inject DashboardService Svc
+@inject NavigationManager Nav
+@using AgentScope.Domain.Entities
+
+<PageTitle>HITL Queue — AgentScope</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-4 pa-0" />
+
+<MudText Typo="Typo.h5" Style="font-weight:700; color:#F9FAFB; margin-bottom:16px;">Human-in-the-Loop Queue</MudText>
+
+@if (!_loaded)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_reviews.Count == 0)
+{
+    <MudAlert Severity="Severity.Success" Style="background:rgba(16,185,129,0.1); color:#10B981; border:1px solid rgba(16,185,129,0.3);">
+        No pending reviews. All agent actions approved.
+    </MudAlert>
+}
+else
+{
+    <MudPaper Elevation="0" Style="border:1px solid #1F2937; border-radius:12px; overflow:hidden;">
+        <MudTable Items="_reviews" Dense="true" Elevation="0" Style="background:transparent !important;">
+            <HeaderContent>
+                <MudTh>Action</MudTh>
+                <MudTh>Trace</MudTh>
+                <MudTh>Created</MudTh>
+                <MudTh>Payload</MudTh>
+                <MudTh>Decision</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudText Typo="Typo.body2" Style="color:#E5E7EB; font-weight:600;">@context.Action</MudText>
+                </MudTd>
+                <MudTd>
+                    <code style="font-family:'JetBrains Mono',monospace; font-size:.72rem; color:#6B7280;">
+                        @context.TraceId.ToString()[..8]…
+                    </code>
+                </MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.caption" Style="color:#9CA3AF;">
+                        @context.CreatedAt.ToString("dd MMM HH:mm")
+                    </MudText>
+                </MudTd>
+                <MudTd>
+                    @if (!string.IsNullOrEmpty(context.Payload))
+                    {
+                        <span style="font-family:'JetBrains Mono',monospace; font-size:.7rem; color:#6B7280;">
+                            @context.Payload[..Math.Min(50, context.Payload.Length)]
+                        </span>
+                    }
+                </MudTd>
+                <MudTd>
+                    <div style="display:flex; gap:8px;">
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                       Color="Color.Success" Size="Size.Small"
+                                       OnClick="@(() => ApproveAsync(context.Id))"
+                                       title="Approve" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                       Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => RejectAsync(context.Id))"
+                                       title="Reject" />
+                    </div>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private List<HitlReview> _reviews = [];
+    private bool _loaded;
+
+    private List<BreadcrumbItem> _breadcrumbs =
+    [
+        new("Dashboard", href: "/"),
+        new("HITL Queue", href: null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _reviews = await Svc.GetPendingHitlReviewsAsync();
+        _loaded = true;
+    }
+
+    private async Task ApproveAsync(Guid id)
+    {
+        await Svc.ReviewHitlAsync(id, HitlStatus.Approved, null);
+        _reviews = await Svc.GetPendingHitlReviewsAsync();
+        StateHasChanged();
+    }
+
+    private async Task RejectAsync(Guid id)
+    {
+        await Svc.ReviewHitlAsync(id, HitlStatus.Rejected, null);
+        _reviews = await Svc.GetPendingHitlReviewsAsync();
+        StateHasChanged();
+    }
+}

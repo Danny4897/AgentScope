@@ -382,6 +382,25 @@ public sealed class DashboardService
         return resp.IsSuccessStatusCode;
     }
 
+    // ── HITL Queue ───────────────────────────────────────────────────────────
+
+    public async Task<List<HitlReview>> GetPendingHitlReviewsAsync(Guid? applicationId = null, CancellationToken ct = default)
+    {
+        await using var db = _factory.CreateDbContext();
+        var query = db.HitlReviews.Where(h => h.Status == HitlStatus.Pending);
+        if (applicationId.HasValue) query = query.Where(h => h.ApplicationId == applicationId.Value);
+        return await query.OrderBy(h => h.CreatedAt).ToListAsync(ct);
+    }
+
+    public async Task ReviewHitlAsync(Guid id, HitlStatus status, string? note, CancellationToken ct = default)
+    {
+        await using var db = _factory.CreateDbContext();
+        var review = await db.HitlReviews.FirstOrDefaultAsync(h => h.Id == id, ct);
+        if (review is null) return;
+        review.Review(status, note, null);
+        await db.SaveChangesAsync(ct);
+    }
+
     private HttpClient GetApiClient() => _httpFactory.CreateClient("AgentScopeApi");
 
     private static PromptSummary ToSummary(Prompt p) =>

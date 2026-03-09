@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ITokenUsageRepository,   TokenUsageRepository>();
         services.AddScoped<IPromptRepository,       PromptRepository>();
         services.AddScoped<IEvaluationRepository,   EvaluationRepository>();
+        services.AddScoped<IHitlReviewRepository,   HitlReviewRepository>();
         services.AddSingleton<ILlmPricingService,   LlmPricingService>();
         services.AddScoped<IStripeService,          StripeService>();
 
