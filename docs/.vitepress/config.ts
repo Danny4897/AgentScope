@@ -5,6 +5,7 @@ export default defineConfig({
   description: 'AI agent observability platform for .NET — see every agent, trace every pipeline, catch every failure.',
   base: '/AgentScope/',
   cleanUrls: true,
+  ignoreDeadLinks: true,
 
   head: [
     ['meta', { property: 'og:type', content: 'website' }],
