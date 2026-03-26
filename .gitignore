@@ -58,3 +58,5 @@ tech-tester.agent.md
 IMPLEMENTATION_RECORDS.md
 docs/node_modules/
 docs/.vitepress/dist/
+!docs/package.json
+!docs/package-lock.json
