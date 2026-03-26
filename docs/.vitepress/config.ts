@@ -100,6 +100,21 @@ export default defineConfig({
             { text: 'Microsoft.Extensions.AI', link: '/integrations/extensions-ai' },
           ],
         },
+        {
+          text: 'Ecosystem',
+          collapsed: true,
+          items: [
+            { text: 'MonadicSharp ↗', link: 'https://danny4897.github.io/MonadicSharp/' },
+            { text: 'MonadicSharp.Framework ↗', link: 'https://danny4897.github.io/MonadicSharp.Framework/' },
+            { text: 'MonadicSharp.AI ↗', link: 'https://danny4897.github.io/MonadicSharp.AI/' },
+            { text: 'MonadicSharp.Recovery ↗', link: 'https://danny4897.github.io/MonadicSharp.Recovery/' },
+            { text: 'MonadicSharp.Azure ↗', link: 'https://danny4897.github.io/MonadicSharp.Azure/' },
+            { text: 'MonadicSharp.DI ↗', link: 'https://danny4897.github.io/MonadicSharp.DI/' },
+            { text: 'MonadicLeaf ↗', link: 'https://danny4897.github.io/MonadicLeaf/' },
+            { text: 'MonadicSharp × OpenCode ↗', link: 'https://danny4897.github.io/MonadicSharp-OpenCode/' },
+            { text: 'AgentScope ↗', link: 'https://danny4897.github.io/AgentScope/' },
+          ],
+        },
       ],
     },
 
@@ -108,6 +123,12 @@ export default defineConfig({
     ],
 
     search: { provider: 'local' },
+
+    editLink: {
+      pattern: 'https://github.com/Danny4897/AgentScope/edit/feat-001-First-implementations/docs/:path',
+      text: 'Edit this page on GitHub',
+    },
+
 
     footer: {
       message: 'Released under the MIT License.',
