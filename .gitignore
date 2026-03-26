@@ -56,3 +56,5 @@ tech-tester.agent.md
 
 ## Note di sviluppo (non necessarie per avviare la soluzione)
 IMPLEMENTATION_RECORDS.md
+docs/node_modules/
+docs/.vitepress/dist/
